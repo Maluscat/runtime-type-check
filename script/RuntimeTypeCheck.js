@@ -132,7 +132,7 @@ needs to be a key name, which is used for displaying "Object<keyName, ...>" in t
                     this.#conditionTypeof('string')
                 ],
                 assert: val => val.length === len,
-                shouldBe: ({ type }) => ({ type: type, after: `of length ${len}` }),
+                shouldBe: ({ type }) => ({ type, after: `of length ${len}` }),
                 is: ({ type, article }) => `${article} ${type} of a different length`
             };
         },
@@ -146,8 +146,8 @@ needs to be a key name, which is used for displaying "Object<keyName, ...>" in t
         }
     });
     /**
-     * Assert an arbitrary value to match *any* of the given conditions,
-     * throwing an explanatory error message if the assertion fails.
+     * Assert an arbitrary value to match *any* of the given conditions
+     * and throw a detailed explanatory error message if the assertion fails.
      *
      * The conditions are tested recursively through their
      * potential {@link Condition.conditions} field.
@@ -183,8 +183,9 @@ needs to be a key name, which is used for displaying "Object<keyName, ...>" in t
         });
     }
     /**
-     * If a given arbitrary value does not assert *any* of the given conditions,
-     * return the failing condition, or undefined otherwise.
+     * If a given arbitrary value does not assert *any* of the given
+     * conditions, return the failing condition that is the closest
+     * to passing, or undefined otherwise.
      *
      * The conditions are tested recursively through their
      * potential {@link Condition.conditions} field.
@@ -193,18 +194,54 @@ needs to be a key name, which is used for displaying "Object<keyName, ...>" in t
      * @param descriptor The conditions to test the value against.
      */
     static assertFind(val, ...descriptor) {
+        let max = -1;
+        let maxCondition;
         for (let condList of descriptor) {
+            if (this.assert(val, condList))
+                return;
+            condList = this.#resolveConditionList(condList);
+            const assertCount = this.getDescriptorPassCount(val, [condList]);
+            if (assertCount > max) {
+                maxCondition = condList;
+                max = assertCount;
+            }
+        }
+        return maxCondition?.find(cond => !cond.assert(val));
+    }
+    /**
+     * Recursively count the amount of passing conditions
+     * inside a given descriptor and return it.
+     *
+     * This does *not* check if a descriptor as a whole asserts to true.
+     *
+     * @remarks
+     * Contrary to most other methods, this method does *not* take its
+     * descriptor as a rest parameter. A descriptor that would otherwise
+     * be spreaded must be passed inside an array (sorry).
+     */
+    static getDescriptorPassCount(val, descriptorList, ignoreConditions = []) {
+        let count = 0;
+        for (let condList of descriptorList) {
             condList = this.#resolveConditionList(condList);
             for (const cond of condList) {
-                if (cond.conditions) {
-                    const res = this.assertFind(val, ...cond.conditions);
-                    if (res)
-                        return res;
+                if (!ignoreConditions.includes(cond)) {
+                    ignoreConditions.push(cond);
+                    if (cond.conditions) {
+                        count += this.getDescriptorPassCount(val, cond.conditions, ignoreConditions);
+                    }
+                    count += cond.assert(val) ? 1 : 0;
                 }
             }
-            return condList.find(cond => !cond.assert(val));
         }
+        return count;
     }
+    /**
+     * Return the result of {@link getMessageIs} for the first
+     * of the passed values that does not assert.
+     *
+     * @param val An **array** of the values to test.
+     * @param descriptor The conditions to test the value against.
+     */
     static getMessageIsIterated(val, ...descriptor) {
         for (const item of val) {
             if (!this.assert(item, ...descriptor)) {

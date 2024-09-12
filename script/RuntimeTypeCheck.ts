@@ -1,18 +1,117 @@
 'use strict';
+export type Article = 'a' | 'an';
+export type Type =
+  | 'array' | 'NaN' | 'null' | 'string' | 'number' | 'bigint'
+  | 'boolean' | 'symbol' | 'undefined' | 'object' | 'function';
+/**
+ * Data describing attributes of a value that did not pass
+ * a condition's assertion. Utilized in {@link Condition.is}.
+ */
 export interface IsData {
   val: any;
-  type: string;
-  article: string;
+  type: Type;
+  article: Article;
   conditions: Condition[];
 }
 export interface ExpectedData {
   type: string;
 }
+/**
+ * Contains the three parts of the message used to denote the
+ * expected type of the form "[before] [type] [after]".
+ *
+ * Message parts from extended conditions (via {@link Condition.conditions})
+ * will be inherited and merged.
+ *
+ * @example
+ * Extending {@link RuntimeTypeCheck.Cond.number} will inherit its
+ * `type` as `"number"`. Building a `before: "positive"` on top of
+ * it will create the following MessagePart:
+ * ```ts
+ * {
+ *   before: 'positive',
+ *   type: 'number',
+ * }
+ * ```
+ * And yield the following sentence: `"Expected positive number [...]"`.
+ */
 export interface MessagePart {
   before: string;
   type: string;
   after: string;
 }
+
+export interface Condition {
+  /**
+   * Further conditions that this condition relies on. The passed value
+   * in {@link assert} is ensured to match these conditions.
+   *
+   * Note that this is a {@link Descriptor}, so it is an OR list of AND lists.
+   *
+   * For example, a condition asserting a positive number
+   * may specify the condition of type number.
+   */
+  conditions?: Descriptor;
+  /**
+   * Assertion function for an arbitrary value.
+   *
+   * The passed value is ensured to match the specified
+   * {@link Descriptor} in {@link Condition.conditions}, if any.
+   */
+  assert: (value: any) => boolean;
+  /**
+   * Denote what the expected value should be.
+   * @see {@link MessagePart}.
+   *
+   * @example
+   * Assuming the condition asserts a positive number and specifies the
+   * further condition {@link RuntimeTypeCheck.Cond.number}.
+   * The attribute "positive" can then simply be added to the front of the type.
+   * The type itself ("number") is contributed by the extended condition,
+   * so we don't have to care about that:
+   *
+   * `shouldBe: { before: 'positive' }`
+   *
+   * The final error message will then be:
+   * "Expected positive number, got [...]."
+   */
+  shouldBe: Partial<MessagePart> | ((data: ExpectedData) => Partial<MessagePart>);
+  /**
+   * Sentence denoting what the value is when it does not assert.
+   * In simple cases, this is usually a description of the opposite
+   * of the assertion. The sentence should always start with a lowercase
+   * indefinite article (a or an). 
+   *
+   * For advanced use cases, a function may be specified which takes
+   * an {@link IsData} object that contains useful information about
+   * the value in question.
+   *
+   * @example Simple
+   * Assuming the condition asserts a positive number, the `is`
+   * value could be "a negative number or 0", which is a
+   * description of the exact opposite of the expected value.
+   *
+   * The final error message will then be:
+   * "Expected [...], got a negative number or 0."
+   *
+   * @example Advanced
+   * Assuming the condition asserts the length of a value and
+   * the specified further conditions are therefore
+   * {@link RuntimeTypeCheck.Cond.array} and {@link RuntimeTypeCheck.Cond.string}.
+   *
+   * The type or value of the value are unknown, so we can utilize the
+   * method to get type and article and append a sentence describing
+   * the value:
+   * ```js
+   * ({ type, article }) => `${article} ${type} of a different length`.
+   * ```
+   *
+   * In case of an array, the final error message will then be:
+   * "Expected [...], got an array of a different length"
+   */
+  is: string | ((data: IsData) => string);
+}
+
 /**
  * List of possible conditions, *any* of which may match.
  * Thus, it is a disjunction of conjunctions (OR list of AND lists).
@@ -23,12 +122,6 @@ export type Descriptor = ConditionList[];
  * a list of conditions, *all* of which must match.
  */
 export type ConditionList = Condition | Condition[];
-export type Condition = {
-  conditions?: Descriptor;
-  assert: (value: any) => boolean;
-  shouldBe: Partial<MessagePart> | ((data: ExpectedData) => Partial<MessagePart>);
-  is: string | ((data: IsData) => string);
-};
 
 
 export class TypeCheckError extends Error {
@@ -315,7 +408,7 @@ needs to be a key name, which is used for displaying "Object<keyName, ...>" in t
           val: val,
           article: this.getArticle(valueType),
           conditions: condList
-        });
+        } as IsData);
       }
       return condition.is;
     }
@@ -416,7 +509,7 @@ needs to be a key name, which is used for displaying "Object<keyName, ...>" in t
    * Return the `typeof` of a value with the
    * additional types 'array', 'NaN' and 'null'.
    */
-  static getType(value: any) {
+  static getType(value: any): Type {
     if (Array.isArray(value))
       return 'array';
     else if (Number.isNaN(value))

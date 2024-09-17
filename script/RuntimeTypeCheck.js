@@ -338,6 +338,80 @@ needs to be a key name, which is used for displaying "Object<keyName, ...>" in t
                 target.after = source.after + message.after;
         }
     }
+    static getMergedMessage(descriptor) {
+        if (!descriptor) {
+            return [{
+                    before: [],
+                    type: undefined,
+                    after: [],
+                }];
+        }
+        const messageList = [];
+        for (let condList of descriptor) {
+            condList = this.#resolveConditionList(condList);
+            if (condList.length === 0)
+                continue;
+            const currentMessage = makePartial(condList[0].shouldBe);
+            const results = [];
+            let hasDeepMessage = false;
+            for (let i = 1; i < condList.length; i++) {
+                const cond = condList[i];
+                mergeMessages(currentMessage, makePartial(cond.shouldBe));
+            }
+            for (const cond of condList) {
+                results.push(this.getMergedMessage(cond.conditions));
+            }
+            for (const result of results) {
+                if (result.length === 1) {
+                    mergeMessages(currentMessage, result[0]);
+                }
+            }
+            for (const result of results) {
+                if (result.length > 1) {
+                    for (const message of result) {
+                        mergeMessages(message, currentMessage);
+                        messageList.push(message);
+                    }
+                    hasDeepMessage = true;
+                }
+            }
+            if (!hasDeepMessage) {
+                messageList.push(currentMessage);
+            }
+        }
+        // Return result without duplicates
+        return messageList.filter((message, i, arr) => {
+            for (let j = i + 1; j < arr.length; j++) {
+                if (messageIsEqual(message, arr[j])) {
+                    return false;
+                }
+            }
+            return true;
+        });
+        function makePartial(messagePart) {
+            return {
+                before: messagePart?.before ? [messagePart.before] : [],
+                type: messagePart?.type,
+                after: messagePart?.after ? [messagePart.after] : [],
+            };
+        }
+        function mergeMessages(target, source) {
+            if (source.before)
+                target.before.push(...source.before);
+            if (source.after)
+                target.after.push(...source.after);
+            if (!target.type)
+                target.type = source.type;
+        }
+        function messageIsEqual(part1, part2) {
+            return arrayIsEqual(part1.before, part2.before)
+                && arrayIsEqual(part1.after, part2.after)
+                && part1.type === part2.type;
+        }
+        function arrayIsEqual(val1, val2) {
+            return val1.length === val2.length && val1.every((val, i) => val2[i] === val);
+        }
+    }
     // ---- Helper functions ----
     /** Uppercase the first character of a passed string. */
     static toTitleCase(str) {

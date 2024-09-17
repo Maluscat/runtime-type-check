@@ -409,11 +409,11 @@ needs to be a key name, which is used for displaying "Object<keyName, ...>" in t
             }
             return true;
         });
-        function makePartial(messagePart) {
+        function makePartial(message) {
             return {
-                before: messagePart?.before ? [messagePart.before] : [],
-                type: messagePart?.type,
-                after: messagePart?.after ? [messagePart.after] : [],
+                before: message?.before ? [message.before] : [],
+                type: message?.type,
+                after: message?.after ? [message.after] : [],
             };
         }
         function mergeMessages(target, source) {

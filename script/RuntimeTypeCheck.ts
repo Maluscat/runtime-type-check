@@ -36,9 +36,9 @@ export interface ExpectedData {
  * And yield the following sentence: `"Expected positive number [...]"`.
  */
 export interface Message {
-  before: string;
-  type: string;
-  after: string;
+  before?: string;
+  type?: string;
+  after?: string;
 }
 interface MessagePartial {
   before: string[];
@@ -81,7 +81,7 @@ export interface Condition {
    * The final error message will then be:
    * "Expected positive number, got [...]."
    */
-  shouldBe: Partial<Message>;
+  shouldBe: Message;
   /**
    * Sentence denoting what the value is when it does not assert.
    * In simple cases, this is usually a description of the opposite
@@ -292,6 +292,7 @@ needs to be a key name, which is used for displaying "Object<keyName, ...>" in t
         this.getMessageIs(val, ...descriptor)
       );
     }
+    return true;
   }
   /**
    * Assert an arbitrary value to match *any* of of the given conditions.
@@ -556,11 +557,11 @@ needs to be a key name, which is used for displaying "Object<keyName, ...>" in t
     });
 
 
-    function makePartial(messagePart?: Partial<Message>) {
+    function makePartial(message?: Message) {
       return {
-        before: messagePart?.before ? [ messagePart.before ] : [],
-        type: messagePart?.type,
-        after: messagePart?.after ? [ messagePart.after ] : [],
+        before: message?.before ? [ message.before ] : [],
+        type: message?.type,
+        after: message?.after ? [ message.after ] : [],
       };
     }
 

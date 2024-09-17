@@ -219,9 +219,9 @@ needs to be a key name, which is used for displaying "Object<keyName, ...>" in t
      * descriptor as a rest parameter. A descriptor that would otherwise
      * be spreaded must be passed inside an array (sorry).
      */
-    static getDescriptorPassCount(val, descriptorList, ignoreConditions = []) {
+    static getDescriptorPassCount(val, descriptor, ignoreConditions = []) {
         let count = 0;
-        for (let condList of descriptorList) {
+        for (let condList of descriptor) {
             condList = this.#resolveConditionList(condList);
             for (const cond of condList) {
                 if (!ignoreConditions.includes(cond)) {
@@ -235,6 +235,7 @@ needs to be a key name, which is used for displaying "Object<keyName, ...>" in t
         }
         return count;
     }
+    // ---- "Is" message handling ----
     /**
      * Return the result of {@link getMessageIs} for the first
      * of the passed values that does not assert.
@@ -258,9 +259,9 @@ needs to be a key name, which is used for displaying "Object<keyName, ...>" in t
      * {@link Condition.is} field of the failing condition.
      *
      * @example
-     * Value:        0
-     * Conditions:   [ Cond.number, Cond.positive ]
-     * Return value: "a negative number or 0"
+     * Value:        `0`
+     * Conditions:   `[ Cond.number, Cond.positive ]`
+     * Return value: `"a negative number or 0"`
      *
      * @param val The value to test.
      * @param descriptor The conditions to test the value against.
@@ -285,60 +286,28 @@ needs to be a key name, which is used for displaying "Object<keyName, ...>" in t
         }
         return '';
     }
+    // ---- "Expected" message handling ----
     /**
      * Return a string denoting the expected type within the passed conditions.
      *
      * @example
-     * descriptor 1: [ Cond.number, Cond.positive ]
-     * descriptor 2: Cond.keywords("foobar")
-     * Return value: `positive number OR the keyword "foobar"`
+     * descriptor 1: `[ Cond.number, Cond.positive ]`
+     * descriptor 2: `Cond.keywords("foobar")`
+     * Return value: `'positive number OR the keyword "foobar"'`
      */
     static getMessageExpected(...descriptor) {
-        let output = '';
-        descriptor.forEach((condList, i, arr) => {
-            output += this.#joinMessage(this.#getTypeMessageExpected(condList));
-            if (i !== arr.length - 1) {
-                output += ' OR ';
-            }
-        });
+        const messageList = this.mergeDescriptorMessages(descriptor);
+        const output = messageList
+            .map(this.compilePartialMessage)
+            .join(' OR ');
         return output;
     }
-    static #getTypeMessageExpected(condList) {
-        condList = this.#resolveConditionList(condList);
-        const message = {
-            before: '',
-            type: '',
-            after: '',
-        };
-        for (const cond of condList) {
-            if (cond.conditions) {
-                for (const deepCond of cond.conditions) {
-                    const deepMessage = this.#getTypeMessageExpected(deepCond);
-                    mergeMessages(message, deepMessage);
-                }
-            }
-            let expected;
-            if (typeof cond.shouldBe === 'function') {
-                expected = cond.shouldBe({
-                    type: message.type
-                });
-            }
-            else {
-                expected = cond.shouldBe;
-            }
-            mergeMessages(message, expected);
-        }
-        return message;
-        function mergeMessages(target, source) {
-            if (source.before)
-                target.before += source.before;
-            if (source.type)
-                target.type = source.type;
-            if (source.after)
-                target.after = source.after + message.after;
-        }
+    static compilePartialMessage(messagePartial) {
+        return (messagePartial.before.length > 0 ? messagePartial.before.join(', ') + ' ' : '')
+            + messagePartial.type
+            + (messagePartial.after.length > 0 ? ' ' + messagePartial.after.join(', ') : '');
     }
-    static getMergedMessage(descriptor) {
+    static mergeDescriptorMessages(descriptor) {
         if (!descriptor) {
             return [{
                     before: [],
@@ -359,7 +328,7 @@ needs to be a key name, which is used for displaying "Object<keyName, ...>" in t
                 mergeMessages(currentMessage, makePartial(cond.shouldBe));
             }
             for (const cond of condList) {
-                results.push(this.getMergedMessage(cond.conditions));
+                results.push(this.mergeDescriptorMessages(cond.conditions));
             }
             for (const result of results) {
                 if (result.length === 1) {
@@ -466,10 +435,5 @@ needs to be a key name, which is used for displaying "Object<keyName, ...>" in t
      */
     static #resolveConditionList(condList) {
         return Array.isArray(condList) ? condList : [condList];
-    }
-    static #joinMessage(message) {
-        message.before &&= (message.before + ' ');
-        message.after &&= (' ' + message.after);
-        return message.before + message.type + message.after;
     }
 }

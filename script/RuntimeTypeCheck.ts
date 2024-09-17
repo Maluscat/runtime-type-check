@@ -26,7 +26,7 @@ export interface ExpectedData {
  * @example
  * Extending {@link RuntimeTypeCheck.Cond.number} will inherit its
  * `type` as `"number"`. Building a `before: "positive"` on top of
- * it will create the following MessagePart:
+ * it will create the following Message:
  * ```ts
  * {
  *   before: 'positive',
@@ -35,7 +35,7 @@ export interface ExpectedData {
  * ```
  * And yield the following sentence: `"Expected positive number [...]"`.
  */
-export interface MessagePart {
+export interface Message {
   before: string;
   type: string;
   after: string;
@@ -67,7 +67,7 @@ export interface Condition {
   assert: (value: any) => boolean;
   /**
    * Denote what the expected value should be.
-   * @see {@link MessagePart}.
+   * @see {@link Message}.
    *
    * @example
    * Assuming the condition asserts a positive number and specifies the
@@ -81,7 +81,7 @@ export interface Condition {
    * The final error message will then be:
    * "Expected positive number, got [...]."
    */
-  shouldBe: Partial<MessagePart>;
+  shouldBe: Partial<Message>;
   /**
    * Sentence denoting what the value is when it does not assert.
    * In simple cases, this is usually a description of the opposite
@@ -352,9 +352,9 @@ needs to be a key name, which is used for displaying "Object<keyName, ...>" in t
    * descriptor as a rest parameter. A descriptor that would otherwise
    * be spreaded must be passed inside an array (sorry).
    */
-  static getDescriptorPassCount(val: any, descriptorList: Descriptor, ignoreConditions: Condition[] = []): number {
+  static getDescriptorPassCount(val: any, descriptor: Descriptor, ignoreConditions: Condition[] = []): number {
     let count = 0;
-    for (let condList of descriptorList) {
+    for (let condList of descriptor) {
       condList = this.#resolveConditionList(condList);
       for (const cond of condList) {
         if (!ignoreConditions.includes(cond)) {
@@ -369,6 +369,7 @@ needs to be a key name, which is used for displaying "Object<keyName, ...>" in t
     return count;
   }
 
+  // ---- "Is" message handling ----
   /**
    * Return the result of {@link getMessageIs} for the first
    * of the passed values that does not assert.
@@ -392,9 +393,9 @@ needs to be a key name, which is used for displaying "Object<keyName, ...>" in t
    * {@link Condition.is} field of the failing condition.
    *
    * @example
-   * Value:        0
-   * Conditions:   [ Cond.number, Cond.positive ]
-   * Return value: "a negative number or 0"
+   * Value:        `0`
+   * Conditions:   `[ Cond.number, Cond.positive ]`
+   * Return value: `"a negative number or 0"`
    *
    * @param val The value to test.
    * @param descriptor The conditions to test the value against.
@@ -421,62 +422,30 @@ needs to be a key name, which is used for displaying "Object<keyName, ...>" in t
     return '';
   }
 
+  // ---- "Expected" message handling ----
   /**
    * Return a string denoting the expected type within the passed conditions.
    *
    * @example
-   * descriptor 1: [ Cond.number, Cond.positive ]
-   * descriptor 2: Cond.keywords("foobar")
-   * Return value: `positive number OR the keyword "foobar"`
+   * descriptor 1: `[ Cond.number, Cond.positive ]`
+   * descriptor 2: `Cond.keywords("foobar")`
+   * Return value: `'positive number OR the keyword "foobar"'`
    */
   static getMessageExpected(...descriptor: Descriptor) {
-    let output = '';
-    descriptor.forEach((condList, i, arr) => {
-      output += this.#joinMessage(this.#getTypeMessageExpected(condList));
-      if (i !== arr.length - 1) {
-        output += ' OR ';
-      }
-    });
+    const messageList = this.mergeDescriptorMessages(descriptor);
+    const output = messageList
+      .map(this.compilePartialMessage)
+      .join(' OR ');
     return output;
   }
-  static #getTypeMessageExpected(condList: ConditionList): MessagePart {
-    condList = this.#resolveConditionList(condList);
-    const message: MessagePart = {
-      before: '',
-      type: '',
-      after: '',
-    };
 
-    for (const cond of condList) {
-      if (cond.conditions) {
-        for (const deepCond of cond.conditions) {
-          const deepMessage = this.#getTypeMessageExpected(deepCond);
-          mergeMessages(message, deepMessage);
-        }
-      }
-
-      let expected: Partial<MessagePart>;
-      if (typeof cond.shouldBe === 'function') {
-        expected = cond.shouldBe({
-          type: message.type
-        });
-      } else {
-        expected = cond.shouldBe;
-      }
-      mergeMessages(message, expected);
-    }
-
-    return message;
-
-
-    function mergeMessages(target: MessagePart, source: Partial<MessagePart>) {
-      if (source.before) target.before += source.before;
-      if (source.type) target.type = source.type;
-      if (source.after) target.after = source.after + message.after;
-    }
+  static compilePartialMessage(messagePartial: MessagePartial) {
+    return (messagePartial.before.length > 0 ? messagePartial.before.join(', ') + ' ' : '')
+         + messagePartial.type
+         + (messagePartial.after.length > 0 ? ' ' + messagePartial.after.join(', ') : '')
   }
 
-  static getMergedMessage(descriptor?: Descriptor): MessagePartial[] {
+  static mergeDescriptorMessages(descriptor?: Descriptor): MessagePartial[] {
     if (!descriptor) {
       return [{
         before: [],
@@ -501,7 +470,7 @@ needs to be a key name, which is used for displaying "Object<keyName, ...>" in t
       }
 
       for (const cond of condList) {
-        results.push(this.getMergedMessage(cond.conditions));
+        results.push(this.mergeDescriptorMessages(cond.conditions));
       }
 
       for (const result of results) {
@@ -535,7 +504,7 @@ needs to be a key name, which is used for displaying "Object<keyName, ...>" in t
     });
 
 
-    function makePartial(messagePart?: Partial<MessagePart>) {
+    function makePartial(messagePart?: Partial<Message>) {
       return {
         before: messagePart?.before ? [ messagePart.before ] : [],
         type: messagePart?.type,
@@ -616,11 +585,5 @@ needs to be a key name, which is used for displaying "Object<keyName, ...>" in t
    */
   static #resolveConditionList(condList: ConditionList): Condition[] {
     return Array.isArray(condList) ? condList : [condList];
-  }
-
-  static #joinMessage(message: MessagePart): string {
-    message.before &&= (message.before + ' ');
-    message.after &&= (' ' + message.after);
-    return message.before + message.type + message.after;
   }
 }

@@ -132,7 +132,7 @@ needs to be a key name, which is used for displaying "Object<keyName, ...>" in t
                     this.#conditionTypeof('string')
                 ],
                 assert: val => val.length === len,
-                shouldBe: ({ type }) => ({ type, after: `of length ${len}` }),
+                shouldBe: { after: `of length ${len}` },
                 is: ({ type, article }) => `${article} ${type} of a different length`
             };
         },
@@ -140,7 +140,7 @@ needs to be a key name, which is used for displaying "Object<keyName, ...>" in t
             return {
                 conditions: [this.#conditionTypeof('number')],
                 assert: val => val >= min && val <= max,
-                shouldBe: ({ type }) => ({ type: type, after: `of the interval [${min}, ${max}]` }),
+                shouldBe: { after: `of the interval [${min}, ${max}]` },
                 is: 'a number outside of the required range'
             };
         }

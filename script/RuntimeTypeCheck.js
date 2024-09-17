@@ -200,7 +200,7 @@ needs to be a key name, which is used for displaying "Object<keyName, ...>" in t
             if (this.assert(val, condList))
                 return;
             condList = this.#resolveConditionList(condList);
-            const assertCount = this.getDescriptorPassCount(val, [condList]);
+            const assertCount = this.getDescriptorPassCount(val, condList);
             if (assertCount > max) {
                 maxCondition = condList;
                 max = assertCount;
@@ -213,13 +213,11 @@ needs to be a key name, which is used for displaying "Object<keyName, ...>" in t
      * inside a given descriptor and return it.
      *
      * This does *not* check if a descriptor as a whole asserts to true.
-     *
-     * @remarks
-     * Contrary to most other methods, this method does *not* take its
-     * descriptor as a rest parameter. A descriptor that would otherwise
-     * be spreaded must be passed inside an array (sorry).
      */
-    static getDescriptorPassCount(val, descriptor, ignoreConditions = []) {
+    static getDescriptorPassCount(val, ...descriptor) {
+        return this.#getDescriptorPassCountHelper(val, descriptor, []);
+    }
+    static #getDescriptorPassCountHelper(val, descriptor, ignoreConditions = []) {
         let count = 0;
         for (let condList of descriptor) {
             condList = this.#resolveConditionList(condList);
@@ -227,7 +225,7 @@ needs to be a key name, which is used for displaying "Object<keyName, ...>" in t
                 if (!ignoreConditions.includes(cond)) {
                     ignoreConditions.push(cond);
                     if (cond.conditions) {
-                        count += this.getDescriptorPassCount(val, cond.conditions, ignoreConditions);
+                        count += this.#getDescriptorPassCountHelper(val, cond.conditions, ignoreConditions);
                     }
                     count += cond.assert(val) ? 1 : 0;
                 }
@@ -252,8 +250,8 @@ needs to be a key name, which is used for displaying "Object<keyName, ...>" in t
     }
     /**
      * Return a string denoting the type of the value in the
-     * context of the first failed condition, or an empty string
-     * if all conditions assert correctly.
+     * context of the condition that is closest to matching,
+     * or an empty string if all conditions assert correctly.
      *
      * The returned string is simply the result of executing the
      * {@link Condition.is} field of the failing condition.
@@ -289,6 +287,7 @@ needs to be a key name, which is used for displaying "Object<keyName, ...>" in t
     // ---- "Expected" message handling ----
     /**
      * Return a string denoting the expected type within the passed conditions.
+     * The message is created by recursively merging all `shouldBe` fields.
      *
      * @example
      * descriptor 1: `[ Cond.number, Cond.positive ]`
@@ -296,12 +295,29 @@ needs to be a key name, which is used for displaying "Object<keyName, ...>" in t
      * Return value: `'positive number OR the keyword "foobar"'`
      */
     static getMessageExpected(...descriptor) {
-        const messageList = this.mergeDescriptorMessages(descriptor);
+        const messageList = this.mergeDescriptorMessages(...descriptor);
         const output = messageList
             .map(this.compilePartialMessage)
             .join(' OR ');
         return output;
     }
+    /**
+     * Compile a single {@link MessagePartial} into a coherent sentence
+     * of the form "[...before] [type] [...after]". A few linguistic
+     * transformations are made.
+     *
+     * @example
+     * Input:
+     * ```ts
+     * {
+     *   before: [ 'nonverbal', 'positive' ],
+     *   type: [ 'integer' ],
+     *   after: [ 'that is cool', 'with 6 digits', 'that is divisible by 5' ]
+     * }
+     * ```
+     * Output:
+     * `"nonverbal, positive integer with 6 digits that is cool and is divisible by 5"`
+     */
     static compilePartialMessage(messagePartial) {
         let output = '';
         if (messagePartial.before.length > 0) {
@@ -332,7 +348,18 @@ needs to be a key name, which is used for displaying "Object<keyName, ...>" in t
         }
         return output;
     }
-    static mergeDescriptorMessages(descriptor) {
+    /**
+     * Recursively look at the messages defined in the `shouldBe` field
+     * of the given descriptors and merge them from bottom to top,
+     * returning a disjunction of {@link MessagePartial}s.
+     *
+     * Disjunction means that every output list item is a standalone
+     * message for a seperate assertion.
+     */
+    static mergeDescriptorMessages(...descriptor) {
+        return this.#mergeDescriptorMessagesHelper(descriptor);
+    }
+    static #mergeDescriptorMessagesHelper(descriptor) {
         if (!descriptor) {
             return [{
                     before: [],
@@ -353,7 +380,7 @@ needs to be a key name, which is used for displaying "Object<keyName, ...>" in t
                 mergeMessages(currentMessage, makePartial(cond.shouldBe));
             }
             for (const cond of condList) {
-                results.push(this.mergeDescriptorMessages(cond.conditions));
+                results.push(this.#mergeDescriptorMessagesHelper(cond.conditions));
             }
             for (const result of results) {
                 if (result.length === 1) {

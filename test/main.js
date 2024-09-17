@@ -160,33 +160,33 @@ describe('Message merger', () => {
   };
 
   it('Shallow, single', () => {
-    assert.deepEqual(RuntimeTypeCheck.mergeDescriptorMessages([[ c.number, c.positive ]]), [{
+    assert.deepEqual(RuntimeTypeCheck.mergeDescriptorMessages([ c.number, c.positive ]), [{
       before: [ c.positive.shouldBe.before ],
       type: c.number.shouldBe.type,
       after: []
     }]);
-    assert.deepEqual(RuntimeTypeCheck.mergeDescriptorMessages([[ c.number, c.positive, c.length ]]), [{
+    assert.deepEqual(RuntimeTypeCheck.mergeDescriptorMessages([ c.number, c.positive, c.length ]), [{
       before: [ c.positive.shouldBe.before ],
       type: c.number.shouldBe.type,
       after: [ c.length.shouldBe.after ]
     }]);
   });
   it('Shallow, multiple', () => {
-    assert.deepEqual(RuntimeTypeCheck.mergeDescriptorMessages([[ c.number, c.positive, c.nonverbal, c.length, c.foobar ]]), [{
+    assert.deepEqual(RuntimeTypeCheck.mergeDescriptorMessages([ c.number, c.positive, c.nonverbal, c.length, c.foobar ]), [{
       type: c.number.shouldBe.type,
       before: [ c.positive.shouldBe.before, c.nonverbal.shouldBe.before ],
       after: [ c.length.shouldBe.after, c.foobar.shouldBe.after ]
     }]);
   });
   it('Deep hierarchy of ever one child = shallow', () => {
-    assert.deepEqual(RuntimeTypeCheck.mergeDescriptorMessages([[ c.positive, c.neutral ]]), [{
+    assert.deepEqual(RuntimeTypeCheck.mergeDescriptorMessages([ c.positive, c.neutral ]), [{
       type: c.integerOR.shouldBe.type,
       before: [ c.positive.shouldBe.before, c.neutral.shouldBe.before, c.negative.shouldBe.before ],
       after: []
     }], "Deep to shallow merge");
   });
   it('Shallow OR', () => {
-    assert.deepEqual(RuntimeTypeCheck.mergeDescriptorMessages([[ c.positive, c.neutral ], [ c.nonverbal, c.number ]]), [
+    assert.deepEqual(RuntimeTypeCheck.mergeDescriptorMessages([ c.positive, c.neutral ], [ c.nonverbal, c.number ]), [
       {
         type: c.integerOR.shouldBe.type,
         before: [ c.positive.shouldBe.before, c.neutral.shouldBe.before, c.negative.shouldBe.before ],
@@ -199,7 +199,7 @@ describe('Message merger', () => {
     ], "Shallow OR");
   });
   it('Deep OR', () => {
-    assert.deepEqual(RuntimeTypeCheck.mergeDescriptorMessages([ c.or ]), [
+    assert.deepEqual(RuntimeTypeCheck.mergeDescriptorMessages(c.or), [
       {
         type: 'integer',
         before: [ c.neutral.shouldBe.before, c.positive.shouldBe.before, c.negative.shouldBe.before ],
@@ -220,10 +220,10 @@ describe('Message merger', () => {
     ], "Deep OR");
   });
   it('Deep OR: Filter duplicates', () => {
-    assert.deepEqual(RuntimeTypeCheck.mergeDescriptorMessages([
+    assert.deepEqual(RuntimeTypeCheck.mergeDescriptorMessages(
       [ c.positive, c.neutral ],
       [ c.positive, c.neutral ]
-    ]), [{
+    ), [{
       type: c.integerOR.shouldBe.type,
       before: [ c.positive.shouldBe.before, c.neutral.shouldBe.before, c.negative.shouldBe.before ],
       after: []

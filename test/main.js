@@ -119,7 +119,7 @@ describe('Message merger', () => {
     },
     foobar: {
       shouldBe: { after: 'that is a foobar' }
-    }
+    },
   };
   c.integerOR = {
     conditions: [ c.number ],
@@ -154,7 +154,7 @@ describe('Message merger', () => {
   c.or = {
     conditions: [
       [ c.neutral, c.positive ],
-      [ c.baz, c.foobar ],
+      [ c.baz, c.foobar, c.length ],
       [ c.nonverbal ]
     ]
   };
@@ -207,11 +207,11 @@ describe('Message merger', () => {
       }, {
         type: 'integer',
         before: [ c.negative.shouldBe.before ],
-        after: [ c.baz.shouldBe.after, c.foobar.shouldBe.after ]
+        after: [ c.baz.shouldBe.after, c.foobar.shouldBe.after, c.length.shouldBe.after ]
       }, {
         type: 'number',
         before: [ c.nonverbal.shouldBe.before ],
-        after: [ c.baz.shouldBe.after, c.foobar.shouldBe.after ]
+        after: [ c.baz.shouldBe.after, c.foobar.shouldBe.after, c.length.shouldBe.after ]
       }, {
         type: undefined,
         before: [ 'nonverbal' ],
@@ -231,8 +231,8 @@ describe('Message merger', () => {
   });
   describe('Compiled messages', () => {
     it('Deep OR', () => {
-      assert.deepEqual(RuntimeTypeCheck.getMessageExpected(c.or, c.or),
-        "neutral, positive, negative integer OR negative integer that has a baz that is a foobar OR nonverbal number that has a baz that is a foobar OR nonverbal <unknown>");
+      assert.equal(RuntimeTypeCheck.getMessageExpected(c.or, c.or),
+        "neutral, positive, negative integer OR negative integer of length 5 that is a foobar and has a baz OR nonverbal number of length 5 that is a foobar and has a baz OR nonverbal <unknown>");
     });
   });
 });

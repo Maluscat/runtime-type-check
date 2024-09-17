@@ -303,9 +303,34 @@ needs to be a key name, which is used for displaying "Object<keyName, ...>" in t
         return output;
     }
     static compilePartialMessage(messagePartial) {
-        return (messagePartial.before.length > 0 ? messagePartial.before.join(', ') + ' ' : '')
-            + messagePartial.type
-            + (messagePartial.after.length > 0 ? ' ' + messagePartial.after.join(', ') : '');
+        let output = '';
+        if (messagePartial.before.length > 0) {
+            output += messagePartial.before
+                .map(str => str.trim())
+                .join(', ');
+            output += ' ';
+        }
+        output += (messagePartial.type ?? '<unknown>');
+        if (messagePartial.after.length > 0) {
+            let hadFirstThat = false;
+            output += ' ';
+            output += messagePartial.after
+                .map(str => str.trim())
+                .sort(str => str.startsWith('that') ? 1 : -1)
+                .map((str, i) => {
+                if (str.startsWith('that')) {
+                    if (!hadFirstThat) {
+                        hadFirstThat = true;
+                    }
+                    else {
+                        return str.replace('that', 'and');
+                    }
+                }
+                return str;
+            })
+                .join(' ');
+        }
+        return output;
     }
     static mergeDescriptorMessages(descriptor) {
         if (!descriptor) {

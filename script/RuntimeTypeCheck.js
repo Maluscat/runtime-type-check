@@ -26,9 +26,9 @@ export class RuntimeTypeCheck {
         array: (...descriptor) => {
             return {
                 conditions: [this.#conditionTypeof('array')],
-                assert: (val) => descriptor.length > 0
-                    ? val.every(inner => this.assert(inner, ...descriptor))
-                    : true,
+                assert: descriptor.length > 0
+                    ? (val) => val.every(inner => this.assert(inner, ...descriptor))
+                    : (val) => true,
                 shouldBe: descriptor.length > 0
                     ? { type: `Array<${this.getMessageExpected(...descriptor)}>` }
                     : { type: 'array' },
@@ -54,9 +54,9 @@ needs to be a key name, which is used for displaying "Object<keyName, ...>" in t
 (If generic, just use 'string')`);
             return {
                 conditions: [this.#conditionTypeof('object')],
-                assert: val => descriptor
-                    ? Object.values(val).every(inner => this.assert(inner, ...descriptor))
-                    : true,
+                assert: descriptor
+                    ? val => Object.values(val).every(inner => this.assert(inner, ...descriptor))
+                    : val => true,
                 shouldBe: descriptor
                     ? { type: `Object<${keyName}, ${this.getMessageExpected(...descriptor)}>` }
                     : { type: 'object' },
@@ -159,6 +159,7 @@ needs to be a key name, which is used for displaying "Object<keyName, ...>" in t
         if (!this.assert(val, ...descriptor)) {
             throw new TypeCheckError(this.getMessageExpected(...descriptor), this.getMessageIs(val, ...descriptor));
         }
+        return true;
     }
     /**
      * Assert an arbitrary value to match *any* of of the given conditions.
@@ -173,6 +174,7 @@ needs to be a key name, which is used for displaying "Object<keyName, ...>" in t
         return descriptor.some(condList => {
             condList = this.#resolveConditionList(condList);
             for (const cond of condList) {
+                // TODO check if cond is a Condition (check for object literal & presence of the properties)
                 if (cond.conditions) {
                     const res = this.assert(val, ...cond.conditions);
                     if (!res)
@@ -266,18 +268,14 @@ needs to be a key name, which is used for displaying "Object<keyName, ...>" in t
      *                   The first failed condition will produce the return value.
      */
     static getMessageIs(val, ...descriptor) {
-        for (let condList of descriptor) {
-            condList = this.#resolveConditionList(condList);
-            const condition = this.assertFind(val, condList);
-            if (!condition)
-                continue;
+        const condition = this.assertFind(val, ...descriptor);
+        if (condition) {
             if (typeof condition.is === 'function') {
                 const valueType = this.getType(val);
                 return condition.is({
                     type: valueType,
                     val: val,
                     article: this.getArticle(valueType),
-                    conditions: condList
                 });
             }
             return condition.is;

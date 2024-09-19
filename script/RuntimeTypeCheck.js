@@ -1,4 +1,146 @@
 'use strict';
+export class Cond {
+    static #conditionTypeof(type) {
+        return {
+            assert: val => RuntimeTypeCheck.getType(val) === type,
+            shouldBe: { type: type },
+            is: ({ type }) => type
+        };
+    }
+    // ---- Types ----
+    static typeof = this.#conditionTypeof;
+    static boolean = this.#conditionTypeof('boolean');
+    static function = this.#conditionTypeof('function');
+    static number = this.#conditionTypeof('number');
+    static string = this.#conditionTypeof('string');
+    static true = ({
+        conditions: [this.#conditionTypeof('boolean')],
+        assert: val => val === true,
+        shouldBe: { type: 'true' },
+        is: 'false',
+    });
+    static false = ({
+        conditions: [this.#conditionTypeof('boolean')],
+        assert: val => val === false,
+        shouldBe: { type: 'false' },
+        is: 'true',
+    });
+    static integer = ({
+        conditions: [this.#conditionTypeof('number')],
+        assert: val => val % 1 === 0,
+        shouldBe: { type: 'integer' },
+        is: 'a floating point number'
+    });
+    static array(...descriptor) {
+        return ({
+            conditions: [this.#conditionTypeof('array')],
+            assert: descriptor.length > 0
+                ? (val) => val.every(inner => RuntimeTypeCheck.assert(inner, ...descriptor))
+                : (val) => true,
+            shouldBe: descriptor.length > 0
+                ? { type: `Array<${RuntimeTypeCheck.getMessageExpected(...descriptor)}>` }
+                : { type: 'array' },
+            is: ({ val, type }) => {
+                if (type === 'array' && descriptor.length > 0) {
+                    if (val.length === 0) {
+                        return 'an empty array';
+                    }
+                    else {
+                        return `Array<${RuntimeTypeCheck.getMessageIsIterated(val, ...descriptor)}>`;
+                    }
+                }
+                else
+                    return type;
+            }
+        });
+    }
+    ;
+    static object(keyName, ...descriptor) {
+        if (typeof keyName !== 'string')
+            throw new Error(`\
+Condition 'object': When passing a descriptor, the first parameter \
+needs to be a key name, which is used for displaying "Object<keyName, ...>" in the type message.
+(If generic, just use 'string')`);
+        return ({
+            conditions: [this.#conditionTypeof('object')],
+            assert: descriptor
+                ? (val) => Object.values(val).every(inner => RuntimeTypeCheck.assert(inner, ...descriptor))
+                : (val) => true,
+            shouldBe: descriptor
+                ? { type: `Object<${keyName}, ${RuntimeTypeCheck.getMessageExpected(...descriptor)}>` }
+                : { type: 'object' },
+            is: ({ val, type }) => {
+                if (type === 'object' && descriptor) {
+                    if (val.length === 0) {
+                        return 'an empty object';
+                    }
+                    else {
+                        return `Object<${RuntimeTypeCheck.getMessageIsIterated(Object.values(val), ...descriptor)}>`;
+                    }
+                }
+                else
+                    return type;
+            }
+        });
+    }
+    ;
+    // ---- Misc conditions ----
+    static nonnegative = ({
+        conditions: [this.#conditionTypeof('number')],
+        assert: val => val >= 0,
+        shouldBe: { before: 'non-negative' },
+        is: 'a negative number'
+    });
+    static positive = ({
+        conditions: [this.#conditionTypeof('number')],
+        assert: val => val > 0,
+        shouldBe: { before: 'positive' },
+        is: 'a negative number or 0'
+    });
+    static nonempty = ({
+        conditions: [
+            this.#conditionTypeof('array'),
+            this.#conditionTypeof('string')
+        ],
+        assert: val => val.length > 0,
+        shouldBe: { before: 'non-empty' },
+        is: ({ type, article }) => `${article} empty ${type}`
+    });
+    // ---- Function condition ----
+    static keywords(...keywords) {
+        return {
+            conditions: [this.#conditionTypeof('string')],
+            assert: val => keywords.includes(val),
+            shouldBe: {
+                type: keywords.length > 1
+                    ? `one of the keywords ${RuntimeTypeCheck.getPrettyEnumeratedList(keywords)}`
+                    : `the keyword "${keywords[0]}"`
+            },
+            is: 'a different string'
+        };
+    }
+    ;
+    static length(len) {
+        return {
+            conditions: [
+                this.#conditionTypeof('array'),
+                this.#conditionTypeof('string')
+            ],
+            assert: val => val.length === len,
+            shouldBe: { after: `of length ${len}` },
+            is: ({ type, article }) => `${article} ${type} of a different length`
+        };
+    }
+    ;
+    static range(min, max) {
+        return {
+            conditions: [this.#conditionTypeof('number')],
+            assert: val => val >= min && val <= max,
+            shouldBe: { after: `of the interval [${min}, ${max}]` },
+            is: 'a number outside of the required range'
+        };
+    }
+}
 export class TypeCheckError extends Error {
     expected;
     is;
@@ -10,141 +152,6 @@ export class TypeCheckError extends Error {
     }
 }
 export class RuntimeTypeCheck {
-    static #conditionTypeof(type) {
-        return {
-            assert: val => RuntimeTypeCheck.getType(val) === type,
-            shouldBe: { type: type },
-            is: ({ type }) => type
-        };
-    }
-    static Cond = ({
-        typeof: this.#conditionTypeof,
-        boolean: this.#conditionTypeof('boolean'),
-        function: this.#conditionTypeof('function'),
-        number: this.#conditionTypeof('number'),
-        string: this.#conditionTypeof('string'),
-        array: (...descriptor) => {
-            return {
-                conditions: [this.#conditionTypeof('array')],
-                assert: descriptor.length > 0
-                    ? (val) => val.every(inner => this.assert(inner, ...descriptor))
-                    : (val) => true,
-                shouldBe: descriptor.length > 0
-                    ? { type: `Array<${this.getMessageExpected(...descriptor)}>` }
-                    : { type: 'array' },
-                is: ({ val, type }) => {
-                    if (type === 'array' && descriptor.length > 0) {
-                        if (val.length === 0) {
-                            return 'an empty array';
-                        }
-                        else {
-                            return `Array<${this.getMessageIsIterated(val, ...descriptor)}>`;
-                        }
-                    }
-                    else
-                        return type;
-                }
-            };
-        },
-        object: (keyName, ...descriptor) => {
-            if (typeof keyName !== 'string')
-                throw new Error(`\
-Condition 'object': When passing a descriptor, the first parameter \
-needs to be a key name, which is used for displaying "Object<keyName, ...>" in the type message.
-(If generic, just use 'string')`);
-            return {
-                conditions: [this.#conditionTypeof('object')],
-                assert: descriptor
-                    ? val => Object.values(val).every(inner => this.assert(inner, ...descriptor))
-                    : val => true,
-                shouldBe: descriptor
-                    ? { type: `Object<${keyName}, ${this.getMessageExpected(...descriptor)}>` }
-                    : { type: 'object' },
-                is: ({ val, type }) => {
-                    if (type === 'object' && descriptor) {
-                        if (val.length === 0) {
-                            return 'an empty object';
-                        }
-                        else {
-                            return `Object<${this.getMessageIsIterated(Object.values(val), ...descriptor)}>`;
-                        }
-                    }
-                    else
-                        return type;
-                }
-            };
-        },
-        true: {
-            conditions: [this.#conditionTypeof('boolean')],
-            assert: val => val === true,
-            shouldBe: { type: 'true' },
-            is: 'false',
-        },
-        false: {
-            conditions: [this.#conditionTypeof('boolean')],
-            assert: val => val === false,
-            shouldBe: { type: 'false' },
-            is: 'true',
-        },
-        integer: {
-            conditions: [this.#conditionTypeof('number')],
-            assert: val => val % 1 === 0,
-            shouldBe: { type: 'integer' },
-            is: 'a floating point number'
-        },
-        nonnegative: {
-            conditions: [this.#conditionTypeof('number')],
-            assert: val => val >= 0,
-            shouldBe: { before: 'non-negative' },
-            is: 'a negative number'
-        },
-        positive: {
-            conditions: [this.#conditionTypeof('number')],
-            assert: val => val > 0,
-            shouldBe: { before: 'positive' },
-            is: 'a negative number or 0'
-        },
-        nonempty: {
-            conditions: [
-                this.#conditionTypeof('array'),
-                this.#conditionTypeof('string')
-            ],
-            assert: val => val.length > 0,
-            shouldBe: { before: 'non-empty' },
-            is: ({ type, article }) => `${article} empty ${type}`
-        },
-        keywords: (...keywords) => {
-            return {
-                conditions: [this.#conditionTypeof('string')],
-                assert: val => keywords.includes(val),
-                shouldBe: {
-                    type: keywords.length > 1
-                        ? `one of the keywords ${this.getPrettyEnumeratedList(keywords)}`
-                        : `the keyword "${keywords[0]}"`
-                },
-                is: 'a different string'
-            };
-        },
-        length: (len) => {
-            return {
-                conditions: [
-                    this.#conditionTypeof('array'),
-                    this.#conditionTypeof('string')
-                ],
-                assert: val => val.length === len,
-                shouldBe: { after: `of length ${len}` },
-                is: ({ type, article }) => `${article} ${type} of a different length`
-            };
-        },
-        range: (min, max) => {
-            return {
-                conditions: [this.#conditionTypeof('number')],
-                assert: val => val >= min && val <= max,
-                shouldBe: { after: `of the interval [${min}, ${max}]` },
-                is: 'a number outside of the required range'
-            };
-        }
-    });
     /**
      * Assert an arbitrary value to match *any* of the given conditions
      * and throw a detailed explanatory error message if the assertion fails.

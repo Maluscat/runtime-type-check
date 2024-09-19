@@ -1,7 +1,5 @@
-import { RuntimeTypeCheck } from '../script/RuntimeTypeCheck.js';
+import { RuntimeTypeCheck, Cond } from '../script/RuntimeTypeCheck.js';
 import { assert } from './lib/chai-v5-1-1.min.js';
-
-const Cond = RuntimeTypeCheck.Cond;
 
 describe('Types', () => {
   it('string', () => {

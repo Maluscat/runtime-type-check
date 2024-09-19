@@ -1,6 +1,6 @@
-import { RuntimeTypeCheck } from '../script/RuntimeTypeCheck.js';
+import { RuntimeTypeCheck, Cond } from '../script/RuntimeTypeCheck.js';
 window.RuntimeTypeCheck = RuntimeTypeCheck;
-window.Cond = RuntimeTypeCheck.Cond;
+window.Cond = Cond;
 
 mocha.setup({
   ui: 'bdd',

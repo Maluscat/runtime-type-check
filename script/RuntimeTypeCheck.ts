@@ -326,30 +326,38 @@ export class RuntimeTypeCheck {
 
   /**
    * If a given arbitrary value does not assert *any* of the given
-   * conditions, return the failing condition that is the closest
-   * to passing, or undefined otherwise.
+   * conditions, return the condition that recursively passes the
+   * fewest assertions within the {@link ConditionList} that is the
+   * closest to passing, or undefined otherwise.
    *
    * The conditions are tested recursively through their
    * potential {@link Condition.conditions} field.
+   *
+   * @remarks
+   * This method probably doesn't have to concern you. It is used
+   * within {@link getMessageIs} to get the most relevant condition
+   * for the resulting message.
    *
    * @param val The value to test.
    * @param descriptor The conditions to test the value against.
    */
   static assertFind(val: any, ...descriptor: Descriptor): Condition | undefined {
-    let max = -1;
-    let maxCondition: Condition[] | undefined;
-    for (let condList of descriptor) {
-      if (this.assert(val, condList)) return;
+    if (this.assert(val, ...descriptor)) return;
 
+    const maxCondition = this.#getMinOrMaxValue('max', descriptor, condList => {
       condList = this.#resolveConditionList(condList);
-      const assertCount = this.getDescriptorPassCount(val, condList);
-      if (assertCount > max) {
-        maxCondition = condList;
-        max = assertCount;
-      }
-    }
-    return maxCondition?.find(cond => !cond.assert(val));
+      return this.getDescriptorPassCount(val, condList);
+    });
+
+    if (!maxCondition) return;
+    if (!Array.isArray(maxCondition)) return maxCondition;
+    if (maxCondition.length === 1) return maxCondition[0];
+
+    return this.#getMinOrMaxValue('min', maxCondition, cond => {
+      return this.getDescriptorPassCount(val, cond);
+    });
   }
+
   /**
    * Recursively count the amount of passing conditions
    * inside a given descriptor and return it.
@@ -634,12 +642,33 @@ export class RuntimeTypeCheck {
       return typeof value;
   }
 
-  // ---- Internal type resolvers ----
+  // ---- Internal helpers ----
   /**
    * Return a passed condition list (which can be both an
    * array or a single item) as an ensured array.
    */
   static #resolveConditionList(condList: ConditionList): Condition[] {
     return Array.isArray(condList) ? condList : [condList];
+  }
+
+  /**
+   * Return the array item that is associated with either the minimum
+   * or maximum return value from inside the callback.
+   */
+  static #getMinOrMaxValue<T extends any>(
+    operation: 'min' | 'max',
+    array: T[],
+    callback: (value: T, i: number, arr: T[]) => number
+  ) {
+    let minOrMax: number | undefined;
+    let currentValue: T | undefined;
+    for (let i = 0; i < array.length; i++) {
+      const result = callback(array[i], i, array);
+      if (minOrMax == null || (operation === 'min' && result < minOrMax) || (operation === 'max' && result > minOrMax)) {
+        currentValue = array[i];
+        minOrMax = result;
+      }
+    }
+    return currentValue;
   }
 }

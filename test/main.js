@@ -29,6 +29,20 @@ describe('Types', () => {
     assert.isOk(RuntimeTypeCheck.assert(() => 3, Cond.function));
     assert.isNotOk(RuntimeTypeCheck.assert(3, Cond.function));
   });
+  describe('array', () => {
+    it('Without inner type', () => {
+      assert.isOk(RuntimeTypeCheck.assert([123, 'a'], Cond.array()));
+      assert.isOk(RuntimeTypeCheck.assert([], Cond.array()));
+      assert.isNotOk(RuntimeTypeCheck.assert({}, Cond.array()));
+    });
+    it('With inner type', () => {
+      assert.isNotOk(RuntimeTypeCheck.assert([123, 'a'], Cond.array(Cond.number)));
+      assert.isOk(RuntimeTypeCheck.assert([123, 'a'], Cond.array(Cond.number, Cond.string)));
+      assert.isNotOk(RuntimeTypeCheck.assert([-12.3], Cond.array(Cond.positive, Cond.integer)));
+      assert.isNotOk(RuntimeTypeCheck.assert([12.3], Cond.array([ Cond.positive, Cond.integer ])));
+      assert.isOk(RuntimeTypeCheck.assert([123], Cond.array([ Cond.positive, Cond.integer ])));
+    });
+  });
 });
 
 describe('Nested conditions', () => {
@@ -232,6 +246,30 @@ describe('Message merger', () => {
       assert.equal(RuntimeTypeCheck.getMessageExpected(c.or, c.or),
         "neutral, positive, negative integer OR negative integer of length 5 that is a foobar and has a baz OR nonverbal number of length 5 that is a foobar and has a baz OR nonverbal <unknown>");
     });
+  });
+});
+
+describe('assertFind', () => {
+  it('undefined', () => {
+    assert.equal(undefined, RuntimeTypeCheck.assertFind(-3, Cond.string, Cond.number, Cond.false, Cond.typeof('array')));
+    assert.equal(undefined, RuntimeTypeCheck.assertFind(false, Cond.string, Cond.number, Cond.false, Cond.typeof('array')));
+    assert.equal(undefined, RuntimeTypeCheck.assertFind([], Cond.string, Cond.number, Cond.false, Cond.typeof('array')));
+  });
+  it('Nested conditions', () => {
+    assert.equal(Cond.positive, RuntimeTypeCheck.assertFind(-3, Cond.string, Cond.positive, Cond.false, Cond.typeof('array')));
+  });
+  it('Nested combinations', () => {
+    const positiveInt = [ Cond.positive, Cond.integer ];
+    assert.equal(Cond.integer, RuntimeTypeCheck.assertFind(3.2, Cond.string, positiveInt, Cond.false, Cond.typeof('array')), "first");
+    assert.equal(Cond.positive, RuntimeTypeCheck.assertFind(-3.2, Cond.string, positiveInt, Cond.false, Cond.typeof('array')), "second");
+  });
+  it("Only first layer matches", () => {
+    const condition = {
+      conditions: [ Cond.number ],
+      assert: () => true
+    };
+
+    assert.equal(condition, RuntimeTypeCheck.assertFind("foo", condition, Cond.false, Cond.typeof('array')));
   });
 });
 

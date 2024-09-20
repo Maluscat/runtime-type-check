@@ -13,26 +13,26 @@ export class Cond {
     static function = this.#conditionTypeof('function');
     static number = this.#conditionTypeof('number');
     static string = this.#conditionTypeof('string');
-    static true = ({
-        conditions: [this.#conditionTypeof('boolean')],
+    static true = {
+        conditions: [this.boolean],
         assert: val => val === true,
         shouldBe: { type: 'true' },
         is: 'false',
-    });
-    static false = ({
-        conditions: [this.#conditionTypeof('boolean')],
+    };
+    static false = {
+        conditions: [this.boolean],
         assert: val => val === false,
         shouldBe: { type: 'false' },
         is: 'true',
-    });
-    static integer = ({
-        conditions: [this.#conditionTypeof('number')],
+    };
+    static integer = {
+        conditions: [this.number],
         assert: val => val % 1 === 0,
         shouldBe: { type: 'integer' },
         is: 'a floating point number'
-    });
+    };
     static array(...descriptor) {
-        return ({
+        return {
             conditions: [this.#conditionTypeof('array')],
             assert: descriptor.length > 0
                 ? (val) => val.every(inner => RuntimeTypeCheck.assert(inner, ...descriptor))
@@ -52,64 +52,61 @@ export class Cond {
                 else
                     return type;
             }
-        });
+        };
     }
     ;
     static object(keyName, ...descriptor) {
-        if (typeof keyName !== 'string')
+        if (descriptor.length > 0 && typeof keyName !== 'string')
             throw new Error(`\
 Condition 'object': When passing a descriptor, the first parameter \
 needs to be a key name, which is used for displaying "Object<keyName, ...>" in the type message.
 (If generic, just use 'string')`);
-        return ({
+        return {
             conditions: [this.#conditionTypeof('object')],
-            assert: descriptor
+            assert: descriptor.length > 0
                 ? (val) => Object.values(val).every(inner => RuntimeTypeCheck.assert(inner, ...descriptor))
                 : (val) => true,
-            shouldBe: descriptor
+            shouldBe: descriptor.length > 0
                 ? { type: `Object<${keyName}, ${RuntimeTypeCheck.getMessageExpected(...descriptor)}>` }
                 : { type: 'object' },
             is: ({ val, type }) => {
-                if (type === 'object' && descriptor) {
+                if (type === 'object' && descriptor.length > 0) {
                     if (val.length === 0) {
                         return 'an empty object';
                     }
                     else {
-                        return `Object<${RuntimeTypeCheck.getMessageIsIterated(Object.values(val), ...descriptor)}>`;
+                        return `Object<${keyName}, ${RuntimeTypeCheck.getMessageIsIterated(Object.values(val), ...descriptor)}>`;
                     }
                 }
                 else
                     return type;
             }
-        });
+        };
     }
     ;
     // ---- Misc conditions ----
-    static nonnegative = ({
-        conditions: [this.#conditionTypeof('number')],
+    static nonnegative = {
+        conditions: [this.number],
         assert: val => val >= 0,
         shouldBe: { before: 'non-negative' },
         is: 'a negative number'
-    });
-    static positive = ({
-        conditions: [this.#conditionTypeof('number')],
+    };
+    static positive = {
+        conditions: [this.number],
         assert: val => val > 0,
         shouldBe: { before: 'positive' },
         is: 'a negative number or 0'
-    });
-    static nonempty = ({
-        conditions: [
-            this.#conditionTypeof('array'),
-            this.#conditionTypeof('string')
-        ],
+    };
+    static nonempty = {
+        conditions: [this.array(), this.string],
         assert: val => val.length > 0,
         shouldBe: { before: 'non-empty' },
         is: ({ type, article }) => `${article} empty ${type}`
-    });
-    // ---- Function condition ----
+    };
+    // ---- Condition generators ----
     static keywords(...keywords) {
         return {
-            conditions: [this.#conditionTypeof('string')],
+            conditions: [this.string],
             assert: val => keywords.includes(val),
             shouldBe: {
                 type: keywords.length > 1
@@ -122,10 +119,7 @@ needs to be a key name, which is used for displaying "Object<keyName, ...>" in t
     ;
     static length(len) {
         return {
-            conditions: [
-                this.#conditionTypeof('array'),
-                this.#conditionTypeof('string')
-            ],
+            conditions: [this.array(), this.string],
             assert: val => val.length === len,
             shouldBe: { after: `of length ${len}` },
             is: ({ type, article }) => `${article} ${type} of a different length`
@@ -134,7 +128,7 @@ needs to be a key name, which is used for displaying "Object<keyName, ...>" in t
     ;
     static range(min, max) {
         return {
-            conditions: [this.#conditionTypeof('number')],
+            conditions: [this.number],
             assert: val => val >= min && val <= max,
             shouldBe: { after: `of the interval [${min}, ${max}]` },
             is: 'a number outside of the required range'
@@ -152,6 +146,7 @@ export class TypeCheckError extends Error {
     }
 }
 export class RuntimeTypeCheck {
+    static Cond = Cond;
     /**
      * Assert an arbitrary value to match *any* of the given conditions
      * and throw a detailed explanatory error message if the assertion fails.

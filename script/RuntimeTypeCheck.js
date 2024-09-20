@@ -56,7 +56,7 @@ export class Cond {
     }
     ;
     static object(keyName, ...descriptor) {
-        if (descriptor.length > 0 && typeof keyName !== 'string')
+        if (typeof keyName !== 'string')
             throw new Error(`\
 Condition 'object': When passing a descriptor, the first parameter \
 needs to be a key name, which is used for displaying "Object<keyName, ...>" in the type message.

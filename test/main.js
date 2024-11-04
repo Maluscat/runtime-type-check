@@ -250,26 +250,85 @@ describe('Message merger', () => {
 });
 
 describe('assertFind', () => {
+  const nok = (conditions = []) => ({
+    conditions,
+    assert: () => false
+  });
+  const ok = (conditions = []) => ({
+    conditions,
+    assert: () => true
+  });
+
   it('undefined', () => {
     assert.equal(undefined, RuntimeTypeCheck.assertFind(-3, Cond.string, Cond.number, Cond.false, Cond.typeof('array')));
     assert.equal(undefined, RuntimeTypeCheck.assertFind(false, Cond.string, Cond.number, Cond.false, Cond.typeof('array')));
     assert.equal(undefined, RuntimeTypeCheck.assertFind([], Cond.string, Cond.number, Cond.false, Cond.typeof('array')));
   });
-  it('Nested conditions', () => {
-    assert.equal(Cond.positive, RuntimeTypeCheck.assertFind(-3, Cond.string, Cond.positive, Cond.false, Cond.typeof('array')));
+  it('Simple shallow', () => {
+    assert.equal(RuntimeTypeCheck.assertFind(-3, Cond.string, Cond.false, Cond.typeof('array')), Cond.string);
+  });
+  it('Nested conditions (positive)', () => {
+    // No. 6 (These numbers refer to my notes on paper)
+    assert.equal(RuntimeTypeCheck.assertFind(-3, Cond.string, Cond.positive, Cond.false, Cond.typeof('array')), Cond.positive);
+  });
+  it('Shallow reverse combinations', () => {
+    // No. 11
+    assert.equal(RuntimeTypeCheck.assertFind(3.2, Cond.string, [ Cond.true, Cond.number ], Cond.false), Cond.boolean);
   });
   it('Nested combinations', () => {
-    const positiveInt = [ Cond.positive, Cond.integer ];
-    assert.equal(Cond.integer, RuntimeTypeCheck.assertFind(3.2, Cond.string, positiveInt, Cond.false, Cond.typeof('array')), "first");
-    assert.equal(Cond.positive, RuntimeTypeCheck.assertFind(-3.2, Cond.string, positiveInt, Cond.false, Cond.typeof('array')), "second");
+    // No. 5
+    assert.equal(RuntimeTypeCheck.assertFind(3.2, Cond.string, [ Cond.positive, Cond.true ], Cond.false, Cond.typeof('array')), Cond.boolean);
   });
-  it("Only first layer matches", () => {
+  it('Nested combinations (positive int) 1', () => {
+    // No. 7
+    const positiveInt = [ Cond.positive, Cond.integer ];
+    assert.equal(RuntimeTypeCheck.assertFind(3.2, Cond.string, positiveInt, Cond.false, Cond.typeof('array')), Cond.integer);
+  });
+  it('Nested combinations (positive int) 2', () => {
+    // No. 8
+    const positiveInt = [ Cond.positive, Cond.integer ];
+    assert.equal(RuntimeTypeCheck.assertFind(-3.2, Cond.string, positiveInt, Cond.false, Cond.typeof('array')), Cond.positive);
+  });
+  it("Non-assertion short-circuits", () => {
+    // NOTE: When this fails, it may be because the depth decrementation is missing
+    // No. 9: condition may not be evaluated
     const condition = {
       conditions: [ Cond.number ],
-      assert: () => true
+      assert() {
+        throw new Error('Should not be evaluated!');
+      }
     };
-
-    assert.equal(condition, RuntimeTypeCheck.assertFind("foo", condition, Cond.false, Cond.typeof('array')));
+    assert.doesNotThrow(() => {
+      const typeArray = Cond.typeof('array');
+      assert.equal(RuntimeTypeCheck.assertFind("foo", condition, Cond.false, typeArray), typeArray);
+    });
+  });
+  it('Empty conditions array', () => {
+    const target = nok();
+    assert.equal(RuntimeTypeCheck.assertFind(0, [ { conditions: [], assert: () => true }, target ]), target);
+  });
+  it('Complex', () => {
+    // No. 3
+    const target = nok();
+    const cond = [
+      nok(),
+      [
+        ok([
+          ok([
+            ok()
+          ])
+        ]),
+        target
+      ], [
+        ok([
+          ok()
+        ]),
+        nok([
+          ok()
+        ])
+      ]
+    ];
+    assert.equal(RuntimeTypeCheck.assertFind(0, ...cond), target);
   });
 });
 

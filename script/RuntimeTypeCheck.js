@@ -188,62 +188,92 @@ export class RuntimeTypeCheck {
     }
     /**
      * If a given arbitrary value does not assert *any* of the given
-     * conditions, return the condition that recursively passes the
-     * fewest assertions within the {@link ConditionList} that is the
-     * closest to passing, or undefined otherwise.
+     * conditions, return the most relevant failing condition in the
+     * context of the given value.
      *
      * The conditions are tested recursively through their
      * potential {@link Condition.conditions} field.
+     *
+     * @param val The value to test.
+     * @param descriptor The conditions to test the value against.
      *
      * @remarks
      * This method probably doesn't have to concern you. It is used
      * within {@link getMessageIs} to get the most relevant condition
      * for the resulting message.
      *
-     * @param val The value to test.
-     * @param descriptor The conditions to test the value against.
+     * @example
+     * ```js
+     * RuntimeTypeCheck.assertFind(3.2, Cond.string, [ Cond.positive, Cond.integer ], Cond.true);
+     * ```
+     * This returns `Cond.integer` because it is the most relevant
+     * failing condition for the value `3.2`.
      */
     static assertFind(val, ...descriptor) {
         if (this.assert(val, ...descriptor))
             return;
-        const maxCondition = this.#getMinOrMaxValue('max', descriptor, condList => {
-            condList = this.#resolveConditionList(condList);
-            return this.getDescriptorPassCount(val, condList);
-        });
-        if (!maxCondition)
-            return;
-        if (!Array.isArray(maxCondition))
-            return maxCondition;
-        if (maxCondition.length === 1)
-            return maxCondition[0];
-        return this.#getMinOrMaxValue('min', maxCondition, cond => {
-            return this.getDescriptorPassCount(val, cond);
-        });
+        return this.getMostRelevantFailingCondition(val, ...descriptor);
     }
     /**
-     * Recursively count the amount of passing conditions
-     * inside a given descriptor and return it.
+     * Recursively count passing conditions, weighted by shallowness,
+     * and return the failing condition in the context of the maximum pass count.
+     *
+     * In other words, find the failing condition whose sibling and children
+     * conditions pass the most amount of assertions for the given
+     * value and are thus the most relevant condition context.
      *
      * This does *not* check if a descriptor as a whole asserts to true.
+     *
+     * @see {@link assertFind}
      */
-    static getDescriptorPassCount(val, ...descriptor) {
-        return this.#getDescriptorPassCountHelper(val, descriptor, []);
+    static getMostRelevantFailingCondition(val, ...descriptor) {
+        return this.#getMostRelevantFailingCondition(val, descriptor).failing;
     }
-    static #getDescriptorPassCountHelper(val, descriptor, ignoreConditions = []) {
-        let count = 0;
+    static #getMostRelevantFailingCondition(val, descriptor, ignoreConditions = []) {
+        const max = {
+            count: -Infinity,
+            failing: undefined
+        };
         for (let condList of descriptor) {
             condList = this.#resolveConditionList(condList);
+            /** First failing condition of this level. All others are disregarded. */
+            let firstFail;
+            /** Maximum condition chain count, up to but excluding this level. */
+            let maxCount = -Infinity;
+            /** Count of exactly this level, accumulated for each asserting condition. */
+            let levelCount = 0;
             for (const cond of condList) {
                 if (!ignoreConditions.includes(cond)) {
                     ignoreConditions.push(cond);
-                    if (cond.conditions) {
-                        count += this.#getDescriptorPassCountHelper(val, cond.conditions, ignoreConditions);
+                    let result = {
+                        count: 0,
+                        failing: undefined
+                    };
+                    if (cond.conditions && cond.conditions.length > 0) {
+                        result = this.#getMostRelevantFailingCondition(val, cond.conditions, ignoreConditions);
+                        // Decrementing by one per depth level, weighting shallow conditions.
+                        result.count--;
                     }
-                    count += cond.assert(val) ? 1 : 0;
+                    if (!result.failing) {
+                        if (cond.assert(val)) {
+                            levelCount += 10;
+                        }
+                        else {
+                            result.failing = cond;
+                        }
+                    }
+                    if (result.count > maxCount) {
+                        maxCount = result.count;
+                    }
+                    firstFail ||= result.failing;
                 }
             }
+            if ((maxCount + levelCount) > max.count) {
+                max.failing = firstFail;
+                max.count = maxCount + levelCount;
+            }
         }
-        return count;
+        return max;
     }
     // ---- "Is" message handling ----
     /**

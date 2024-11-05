@@ -82,7 +82,9 @@ export interface Condition {
    * The type itself ("number") is contributed by the extended condition,
    * so we don't have to care about that:
    *
-   * `shouldBe: { before: 'positive' }`
+   * ```js
+   * shouldBe: { before: 'positive' }
+   * ```
    *
    * The final error message will then be:
    * "Expected positive number, got [...]."
@@ -396,9 +398,9 @@ export class RuntimeTypeCheck {
    *
    * @example
    * ```js
-   * RuntimeTypeCheck.assertFind(3.2, Cond.string, [ Cond.positive, Cond.integer ], Cond.true);
+   * assertFind(3.2, Cond.string, [ Cond.positive, Cond.integer ], Cond.true);
    * ```
-   * This returns `Cond.integer` because it is the most relevant
+   * Returns `Cond.integer` because it is the most relevant
    * failing condition for the value `3.2`.
    */
   static assertFind(val: any, ...descriptor: Descriptor): Condition | undefined {
@@ -417,6 +419,8 @@ export class RuntimeTypeCheck {
    * This does *not* check if a descriptor as a whole asserts to true.
    *
    * @see {@link assertFind}
+   *
+   * @internal
    */
   static getMostRelevantFailingCondition(val: any, ...descriptor: Descriptor): Condition | undefined {
     return this.#getMostRelevantFailingCondition(val, descriptor).failing;
@@ -545,7 +549,7 @@ export class RuntimeTypeCheck {
    *
    * @example
    * Input:
-   * ```ts
+   * ```js
    * {
    *   before: [ 'nonverbal', 'positive' ],
    *   type: [ 'integer' ],
@@ -554,6 +558,8 @@ export class RuntimeTypeCheck {
    * ```
    * Output:
    * `"nonverbal, positive integer with 6 digits that is cool and is divisible by 5"`
+   *
+   * @internal
    */
   static compilePartialMessage(messagePartial: MessagePartial) {
     let output = '';
@@ -592,7 +598,9 @@ export class RuntimeTypeCheck {
    * returning a disjunction of {@link MessagePartial}s.
    *
    * Disjunction means that every output list item is a standalone
-   * message for a seperate assertion.
+   * message for a seperate assertion (OR).
+   *
+   * @internal
    */
   static mergeDescriptorMessages(...descriptor: Descriptor): MessagePartial[] {
     return this.#mergeDescriptorMessagesHelper(descriptor);
@@ -681,11 +689,6 @@ export class RuntimeTypeCheck {
   }
 
   // ---- Helper functions ----
-  /** Uppercase the first character of a passed string. */
-  static toTitleCase(str: string) {
-    return str.slice(0, 1).toUpperCase() + str.slice(1);
-  }
-
   /**
    * Get the matching indefinite article (a or an) for the passed string.
    *
@@ -737,26 +740,5 @@ export class RuntimeTypeCheck {
    */
   static #resolveConditionList(condList: ConditionList): Condition[] {
     return Array.isArray(condList) ? condList : [condList];
-  }
-
-  /**
-   * Return the array item that is associated with either the minimum
-   * or maximum return value from inside the callback.
-   */
-  static #getMinOrMaxValue<T extends any>(
-    operation: 'min' | 'max',
-    array: T[],
-    callback: (value: T, i: number, arr: T[]) => number
-  ) {
-    let minOrMax: number | undefined;
-    let currentValue: T | undefined;
-    for (let i = 0; i < array.length; i++) {
-      const result = callback(array[i], i, array);
-      if (minOrMax == null || (operation === 'min' && result < minOrMax) || (operation === 'max' && result > minOrMax)) {
-        currentValue = array[i];
-        minOrMax = result;
-      }
-    }
-    return currentValue;
   }
 }

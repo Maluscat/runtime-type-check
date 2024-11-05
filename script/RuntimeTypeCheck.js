@@ -125,6 +125,10 @@ needs to be a key name, which is used for displaying "Object<keyName, ...>" in t
         shouldBe: { before: 'positive' },
         is: 'a negative number or 0'
     };
+    /**
+     * Assert a value to be a non-empty string or a non-empty array.
+     * Implies {@link string} OR {@link array}.
+     */
     static nonempty = {
         conditions: [this.array(), this.string],
         assert: val => val.length > 0,
@@ -132,6 +136,10 @@ needs to be a key name, which is used for displaying "Object<keyName, ...>" in t
         is: ({ type, article }) => `${article} empty ${type}`
     };
     // ---- Condition generators ----
+    /**
+     * Generates a condition that asserts a value to be only the specified strings.
+     * Implies {@link string}.
+     */
     static keywords(...keywords) {
         return {
             conditions: [this.string],
@@ -145,6 +153,10 @@ needs to be a key name, which is used for displaying "Object<keyName, ...>" in t
         };
     }
     ;
+    /**
+     * Generates a condition that asserts a value to be of the given length.
+     * Implies {@link string} OR {@link array}.
+     */
     static length(len) {
         return {
             conditions: [this.array(), this.string],
@@ -154,6 +166,13 @@ needs to be a key name, which is used for displaying "Object<keyName, ...>" in t
         };
     }
     ;
+    /**
+     * Generates a condition that asserts a value to be inside the given interval (inclusive).
+     * Implies {@link number}.
+     *
+     * @param min Lower interval boundary (inclusive)
+     * @param min Upper interval boundary (inclusive)
+     */
     static range(min, max) {
         return {
             conditions: [this.number],
@@ -232,9 +251,9 @@ export class RuntimeTypeCheck {
      *
      * @example
      * ```js
-     * RuntimeTypeCheck.assertFind(3.2, Cond.string, [ Cond.positive, Cond.integer ], Cond.true);
+     * assertFind(3.2, Cond.string, [ Cond.positive, Cond.integer ], Cond.true);
      * ```
-     * This returns `Cond.integer` because it is the most relevant
+     * Returns `Cond.integer` because it is the most relevant
      * failing condition for the value `3.2`.
      */
     static assertFind(val, ...descriptor) {
@@ -253,6 +272,8 @@ export class RuntimeTypeCheck {
      * This does *not* check if a descriptor as a whole asserts to true.
      *
      * @see {@link assertFind}
+     *
+     * @internal
      */
     static getMostRelevantFailingCondition(val, ...descriptor) {
         return this.#getMostRelevantFailingCondition(val, descriptor).failing;
@@ -374,7 +395,7 @@ export class RuntimeTypeCheck {
      *
      * @example
      * Input:
-     * ```ts
+     * ```js
      * {
      *   before: [ 'nonverbal', 'positive' ],
      *   type: [ 'integer' ],
@@ -383,6 +404,8 @@ export class RuntimeTypeCheck {
      * ```
      * Output:
      * `"nonverbal, positive integer with 6 digits that is cool and is divisible by 5"`
+     *
+     * @internal
      */
     static compilePartialMessage(messagePartial) {
         let output = '';
@@ -420,7 +443,9 @@ export class RuntimeTypeCheck {
      * returning a disjunction of {@link MessagePartial}s.
      *
      * Disjunction means that every output list item is a standalone
-     * message for a seperate assertion.
+     * message for a seperate assertion (OR).
+     *
+     * @internal
      */
     static mergeDescriptorMessages(...descriptor) {
         return this.#mergeDescriptorMessagesHelper(descriptor);
@@ -500,10 +525,6 @@ export class RuntimeTypeCheck {
         }
     }
     // ---- Helper functions ----
-    /** Uppercase the first character of a passed string. */
-    static toTitleCase(str) {
-        return str.slice(0, 1).toUpperCase() + str.slice(1);
-    }
     /**
      * Get the matching indefinite article (a or an) for the passed string.
      *
@@ -553,21 +574,5 @@ export class RuntimeTypeCheck {
      */
     static #resolveConditionList(condList) {
         return Array.isArray(condList) ? condList : [condList];
-    }
-    /**
-     * Return the array item that is associated with either the minimum
-     * or maximum return value from inside the callback.
-     */
-    static #getMinOrMaxValue(operation, array, callback) {
-        let minOrMax;
-        let currentValue;
-        for (let i = 0; i < array.length; i++) {
-            const result = callback(array[i], i, array);
-            if (minOrMax == null || (operation === 'min' && result < minOrMax) || (operation === 'max' && result > minOrMax)) {
-                currentValue = array[i];
-                minOrMax = result;
-            }
-        }
-        return currentValue;
     }
 }

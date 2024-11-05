@@ -146,12 +146,18 @@ export class Cond {
   }
 
   // ---- Types ----
+  /** Assert a value to be of {@link Type}. */
   static typeof = this.#conditionTypeof;
+  /** Assert a value to be a boolean. */
   static boolean = this.#conditionTypeof('boolean');
+  /** Assert a value to be a function. */
   static function = this.#conditionTypeof('function');
+  /** Assert a value to be a number. */
   static number = this.#conditionTypeof('number');
+  /** Assert a value to be a string. */
   static string = this.#conditionTypeof('string');
 
+  /** Assert a value to be `true`. Implies {@link boolean}. */
   static true = ({
     conditions: [this.boolean],
     assert: val => val === true,
@@ -159,6 +165,7 @@ export class Cond {
     is: 'false',
   } satisfies Condition) as Condition;
 
+  /** Assert a value to be `false`. Implies {@link boolean}. */
   static false = ({
     conditions: [this.boolean],
     assert: val => val === false,
@@ -166,6 +173,10 @@ export class Cond {
     is: 'true',
   } satisfies Condition) as Condition;
 
+  /**
+   * Assert a value to be an integer (only whole numbers).
+   * Implies {@link number}.
+   */
   static integer = ({
     conditions: [this.number],
     assert: val => val % 1 === 0,
@@ -173,6 +184,10 @@ export class Cond {
     is: 'a floating point number'
   } satisfies Condition) as Condition;
 
+  /**
+   * Generates a condition that asserts a value to be an array,
+   * optionally with the given descriptor inside it.
+   */
   static array(...descriptor: Descriptor): Condition {
     return ({
       conditions: [this.#conditionTypeof('array')],
@@ -194,6 +209,11 @@ export class Cond {
     } satisfies Condition) as Condition;
   };
 
+  /**
+   * Generates a condition that asserts a value to be an object literal,
+   * optionally with the given descriptor inside it.
+   * @param keyName A concise key description used when displaying the type: `Object<keyName, ...>`.
+   */
   static object(keyName: string, ...descriptor: Descriptor) {
     if (typeof keyName !== 'string') throw new Error(`\
 Condition 'object': When passing a descriptor, the first parameter \
@@ -221,6 +241,10 @@ needs to be a key name, which is used for displaying "Object<keyName, ...>" in t
   };
 
   // ---- Misc conditions ----
+  /**
+   * Assert a value to be not negative (0 or more).
+   * Implies {@link number}.
+   */
   static nonnegative = ({
     conditions: [this.number],
     assert: val => val >= 0,
@@ -228,6 +252,10 @@ needs to be a key name, which is used for displaying "Object<keyName, ...>" in t
     is: 'a negative number'
   } satisfies Condition) as Condition;
 
+  /**
+   * Assert a value to be positive.
+   * Implies {@link number}.
+   */
   static positive = ({
     conditions: [this.number],
     assert: val => val > 0,
@@ -235,6 +263,10 @@ needs to be a key name, which is used for displaying "Object<keyName, ...>" in t
     is: 'a negative number or 0'
   } satisfies Condition) as Condition;
 
+  /**
+   * Assert a value to be a non-empty string or a non-empty array.
+   * Implies {@link string} OR {@link array}.
+   */
   static nonempty = ({
     conditions: [ this.array(), this.string ],
     assert: val => val.length > 0,
@@ -243,6 +275,10 @@ needs to be a key name, which is used for displaying "Object<keyName, ...>" in t
   } satisfies Condition) as Condition;
 
   // ---- Condition generators ----
+  /**
+   * Generates a condition that asserts a value to be only the specified strings.
+   * Implies {@link string}.
+   */
   static keywords(...keywords: string[]): Condition {
     return {
       conditions: [this.string],
@@ -255,6 +291,10 @@ needs to be a key name, which is used for displaying "Object<keyName, ...>" in t
       is: 'a different string'
     }
   };
+  /**
+   * Generates a condition that asserts a value to be of the given length.
+   * Implies {@link string} OR {@link array}.
+   */
   static length(len: number): Condition {
     return ({
       conditions: [ this.array(), this.string ],
@@ -263,6 +303,13 @@ needs to be a key name, which is used for displaying "Object<keyName, ...>" in t
       is: ({type, article}) => `${article} ${type} of a different length`
     } satisfies Condition) as Condition;
   };
+  /**
+   * Generates a condition that asserts a value to be inside the given interval (inclusive).
+   * Implies {@link number}.
+   *
+   * @param min Lower interval boundary (inclusive)
+   * @param min Upper interval boundary (inclusive)
+   */
   static range(min: number, max: number): Condition {
     return ({
       conditions: [this.number],

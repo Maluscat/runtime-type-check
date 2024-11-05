@@ -8,29 +8,44 @@ export class Cond {
         };
     }
     // ---- Types ----
+    /** Assert a value to be of {@link Type}. */
     static typeof = this.#conditionTypeof;
+    /** Assert a value to be a boolean. */
     static boolean = this.#conditionTypeof('boolean');
+    /** Assert a value to be a function. */
     static function = this.#conditionTypeof('function');
+    /** Assert a value to be a number. */
     static number = this.#conditionTypeof('number');
+    /** Assert a value to be a string. */
     static string = this.#conditionTypeof('string');
+    /** Assert a value to be `true`. Implies {@link boolean}. */
     static true = {
         conditions: [this.boolean],
         assert: val => val === true,
         shouldBe: { type: 'true' },
         is: 'false',
     };
+    /** Assert a value to be `false`. Implies {@link boolean}. */
     static false = {
         conditions: [this.boolean],
         assert: val => val === false,
         shouldBe: { type: 'false' },
         is: 'true',
     };
+    /**
+     * Assert a value to be an integer (only whole numbers).
+     * Implies {@link number}.
+     */
     static integer = {
         conditions: [this.number],
         assert: val => val % 1 === 0,
         shouldBe: { type: 'integer' },
         is: 'a floating point number'
     };
+    /**
+     * Generates a condition that asserts a value to be an array,
+     * optionally with the given descriptor inside it.
+     */
     static array(...descriptor) {
         return {
             conditions: [this.#conditionTypeof('array')],
@@ -55,6 +70,11 @@ export class Cond {
         };
     }
     ;
+    /**
+     * Generates a condition that asserts a value to be an object literal,
+     * optionally with the given descriptor inside it.
+     * @param keyName A concise key description used when displaying the type: `Object<keyName, ...>`.
+     */
     static object(keyName, ...descriptor) {
         if (typeof keyName !== 'string')
             throw new Error(`\
@@ -85,12 +105,20 @@ needs to be a key name, which is used for displaying "Object<keyName, ...>" in t
     }
     ;
     // ---- Misc conditions ----
+    /**
+     * Assert a value to be not negative (0 or more).
+     * Implies {@link number}.
+     */
     static nonnegative = {
         conditions: [this.number],
         assert: val => val >= 0,
         shouldBe: { before: 'non-negative' },
         is: 'a negative number'
     };
+    /**
+     * Assert a value to be positive.
+     * Implies {@link number}.
+     */
     static positive = {
         conditions: [this.number],
         assert: val => val > 0,

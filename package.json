@@ -1,0 +1,14 @@
+{
+  "name": "RuntimeTypeCheck",
+  "version": "1.0.0",
+  "author": "Maluscat <maluscat@proton.me> (https://malus.zone/)",
+  "license": "ISC",
+  "description": "Modular runtime type checker with focus on creating readable and smart error messages",
+  "keywords": ["type-check", "type-checker", "assert", "assertion"],
+  "homepage": "https://github.com/Maluscat/runtime-type-check",
+  "bugs": {
+    "url": "https://gitlab.com/Maluscat/runtime-type-check/-/issues"
+  },
+  "type": "module",
+  "main": "./script/RuntimeTypeCheck.js"
+}

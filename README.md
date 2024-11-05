@@ -1,6 +1,6 @@
 # RuntimeTypeCheck
-Minimal and modular type checker for the runtime with a heavy focus on producing
-readable, concise and smart error messages.
+Minimal, modular type checker for the runtime with a heavy focus on producing
+readable and smart error messages.
 
 
 
@@ -10,7 +10,7 @@ JavaScript environment, including the web.
 
 ### Download
 The only required file is `RuntimeTypeCheck.js` inside the [`script`](./script)
-folder. If you want type checking, fetch `RuntimeTypeCheck.ts` as well!
+folder. If you want type checking, fetch `RuntimeTypeCheck.d.ts` as well!
 
 ### npm
 Available on npm under `runtime-type-check`. Use your favorite package manager:
@@ -24,35 +24,56 @@ npm install runtime-type-check
 ## Concepts
 The core concept of RuntimeTypeCheck is a `Condition`, which is a building
 block that contains assertion information. Conditions can recursively extend
-other conditions and can be combined as "OR" and "AND" connections.
+other conditions and can be combined "OR" and "AND" wise.
 
 This allows an overarching assertion to be split up into multiple smaller
-conditions, ensuring flexibility. This means that conditions are able to focus
-on only one part of an assertion while safely assuming the passed value to already
-match various other layers.
+conditions, ensuring flexibility and reusability. This means that conditions
+are able to focus on only one part of an assertion while safely assuming the
+passed value to already match various other layers.
 For example, a condition `divisible(n)` could extend the condition
 `number` and can thus safely assume that any passed value is a number.
 
-If we want to assert a value to be a positive number divisible by 5, we can
-AND-combine two assertions `positive` and `divisible(5)`, both of which will
-extend the condition `number`.
+So, if we want to assert a value to be a positive number divisible by 5,
+we can AND-combine two assertions `positive` and `divisible(5)`, both of which
+will extend the condition `number` (see the [examples](#examples) below).
 
 
 ### Condition
 The TS type of a condition looks like this:
 ```ts
 interface Condition {
+  /** Assertion function. */
   assert: (value: any) => boolean;
+  /**
+   * Conditions that this condition relies on.
+   * Note that this field is a Descriptor, so an "OR" list of "AND" conditions.
+   */
   conditions?: Descriptor;
+  /**
+   * Description of what the correct type should be.
+   *
+   * This will be merged with other conditions to form a coherent sentence
+   * of the desired type (e.g. "Expected a positive number of length 5").
+   */
   shouldBe: Message;
+  /**
+   * Generic description of any value that does **not** assert,
+   * so the opposite of what is asserted for.
+   *
+   * E.g. "a floating point number" when asserting an integer.
+   */
   is: string | ((data: IsData) => string);
 }
 ```
 where
 ```ts
+/** Will be merged into a sentence of the form "...before type ...after" */
 interface Message {
+  /** Will be put before the type (e.g. "positive") */
   before?: string;
+  /** A noun (e.g. "integer" or "string") */
   type?: string;
+  /** Will be put after the type (e.g. "of length 5") */
   after?: string;
 }
 interface IsData {
@@ -65,17 +86,8 @@ type Type =
   | 'boolean' | 'symbol' | 'undefined' | 'object' | 'function';
 ```
 
-#### Explanation
-- `assert` defines the assertion function and must return a boolean.
-- `conditions` defines conditions that this condition relies on.
-  This field is a `Descriptor`, so an "OR" list of "AND" conditions.
-- `shouldBe` defines the description of the desired type. From this, a
-  sentence is created of the structure `"[...before] [type] [...after]"`
-  (e.g. "Should be a positive number of length 5").
-- `is` defines what the value is when the condition does **not** assert
-  (e.g. "a floating point number" when asserting for an integer).
-
-See below for a more detailed overview with examples.
+See below for a more detailed overview with examples, and the [docs](#docs)
+for more in-depth descriptions.
 
 
 ## Usage
@@ -84,25 +96,39 @@ and `Cond` (predefined conditions):
 ```js
 import { RuntimeTypeCheck, Cond } from 'runtime-type-check';
 ```
-See the [docs](https://docs.malus.zone/runtime-type-check/) for an overview
-of all additional typing related exports for use in TypeScript.
+See the [docs](#docs) for an overview of all additional typing related exports
+for use in TypeScript.
 
 `RuntimeTypeCheck` is an entirely static class. For most use cases, there are
 only two relevant methods: `assert` (returns boolean) and `assertAndThrow`
-(throws an explanatory error message).
+(throws an explanatory error message when it does not assert).
 
-Every method accepts its conditions as a rest parameter, where every parameter
-is a descriptor, *any* of which may assert. One descriptor can either be a single
-condition or an AND list of conditions. This also applies to the `conditions`
-parameter of a `Condition`.
+### Parameters
+**Every method accepts its conditions as a rest parameter**, *any*
+of which may assert (OR). One parameter can either be a single
+condition or an AND array of conditions.
 
+Hence, this matches either a string OR a number:
+```ts
+RuntimeTypeCheck.assert(3, Cond.string, Cond.number)
+```
+Whereas this matches a positive number:
+```ts
+RuntimeTypeCheck.assert(3, [ Cond.positive, Cond.number ])
+```
+
+This also applies to the `conditions` parameter of a `Condition`.
+
+### `assertAndThrow`
 `assertAndThrow` throws an error message that automatically catches the most
 relevant condition in the context of the given value. So, when asserting, say,
 either a string or a positive integer against the value `-3`, the method will
-explain that the given *number* may not be negative.
+explain that the given *number* may not be negative. See the [examples](#examples)
+for a more detailed overview.
 
-`Cond` pre-defines commonly used conditions. See an overview in the
-[docs](https://docs.malus.zone/runtime-type-check/#Cond).
+### `Cond`
+`Cond` (alias: `RuntimeTypeCheck.Cond`) pre-defines commonly used conditions.
+See an overview in the [docs](#docs).
 
 
 
@@ -217,8 +243,8 @@ RuntimeTypeCheck.assertAndThrow(-6, [ divisibleBy5, ...divisibleBy5AndGreaterTha
 
 
 ## Docs
-See the [docs](https://docs.malus.zone/runtime-type-check/) for a complete
-overview of the library!
+See the generated [docs](https://docs.malus.zone/runtime-type-check/) for a more
+in-depth overview of the library.
 - [`Cond`](https://docs.malus.zone/runtime-type-check/#Cond)
 - [`RuntimeTypeCheck`](https://docs.malus.zone/runtime-type-check/#RuntimeTypeCheck)
 
@@ -226,7 +252,7 @@ overview of the library!
 
 ## Dev fact
 This project incubated within [Slider89](https://github.com/Maluscat/Slider89), with
-[this](https://github.com/Maluscat/Slider89/blob/30cb8f0606bf6ff27b5c4ec60612865a29553d54/src/core/type-check/RuntimeTypeCheck.ts)
+[this](https://github.com/Maluscat/Slider89/blob/62529f5d2bc83ba311876b86f592f6a5f988ad57/src/core/type-check/RuntimeTypeCheck.ts)
 being the last public point of reference. As the rewrite of this version was
 finished, I immediately rewrote it again with an even better approach, so the
 current version is technically the third major iteration.

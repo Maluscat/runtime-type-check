@@ -10,5 +10,6 @@
     "url": "https://gitlab.com/Maluscat/runtime-type-check/-/issues"
   },
   "type": "module",
-  "main": "./script/RuntimeTypeCheck.js"
+  "main": "./script/RuntimeTypeCheck.js",
+  "files": [ "script/" ]
 }

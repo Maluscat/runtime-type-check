@@ -43,7 +43,7 @@ export class Cond {
         is: 'a floating point number'
     };
     /**
-     * Generates a condition that asserts a value to be an array,
+     * Generate a condition that asserts a value to be an array,
      * optionally with the given descriptor inside it.
      */
     static array(...descriptor) {
@@ -71,7 +71,7 @@ export class Cond {
     }
     ;
     /**
-     * Generates a condition that asserts a value to be an object literal,
+     * Generate a condition that asserts a value to be an object literal,
      * optionally with the given descriptor inside it.
      * @param keyName A concise key description used when displaying the type: `Object<keyName, ...>`.
      */
@@ -137,7 +137,7 @@ needs to be a key name, which is used for displaying "Object<keyName, ...>" in t
     };
     // ---- Condition generators ----
     /**
-     * Generates a condition that asserts a value to be only the specified strings.
+     * Generate a condition that asserts a value to be only the specified strings.
      * Implies {@link string}.
      */
     static keywords(...keywords) {
@@ -154,7 +154,7 @@ needs to be a key name, which is used for displaying "Object<keyName, ...>" in t
     }
     ;
     /**
-     * Generates a condition that asserts a value to be of the given length.
+     * Generate a condition that asserts a value to be of the given length.
      * Implies {@link string} OR {@link array}.
      */
     static length(len) {
@@ -167,11 +167,11 @@ needs to be a key name, which is used for displaying "Object<keyName, ...>" in t
     }
     ;
     /**
-     * Generates a condition that asserts a value to be inside the given interval (inclusive).
+     * Generate a condition that asserts a value to be inside the given interval (inclusive).
      * Implies {@link number}.
      *
      * @param min Lower interval boundary (inclusive)
-     * @param min Upper interval boundary (inclusive)
+     * @param max Upper interval boundary (inclusive)
      */
     static range(min, max) {
         return {

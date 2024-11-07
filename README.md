@@ -13,11 +13,11 @@ The only required file is `RuntimeTypeCheck.js` inside the [`script`](./script)
 folder. If you want type checking, fetch `RuntimeTypeCheck.d.ts` as well!
 
 ### npm
-Available on npm under `runtime-type-check`. Use your favorite package manager:
+Available on npm under `@maluscat/runtime-type-check`. Use your favorite package manager:
 ```sh
-yarn add runtime-type-check
-bun install runtime-type-check
-npm install runtime-type-check
+yarn add @maluscat/runtime-type-check
+bun install @maluscat/runtime-type-check
+npm install @maluscat/runtime-type-check
 ```
 
 
@@ -94,7 +94,7 @@ for more in-depth descriptions.
 The only non-typing-related exports are `RuntimeTypeCheck` (main library)
 and `Cond` (predefined conditions):
 ```js
-import { RuntimeTypeCheck, Cond } from 'runtime-type-check';
+import { RuntimeTypeCheck, Cond } from '@maluscat/runtime-type-check';
 ```
 See the [docs](#docs) for an overview of all additional typing related exports
 for use in TypeScript.

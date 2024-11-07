@@ -1,5 +1,5 @@
 {
-  "name": "RuntimeTypeCheck",
+  "name": "@maluscat/runtime-type-check",
   "version": "1.0.0",
   "author": "Maluscat <maluscat@proton.me> (https://malus.zone/)",
   "license": "ISC",

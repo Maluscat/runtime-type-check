@@ -42,6 +42,24 @@ describe('Types', () => {
       assert.isNotOk(RuntimeTypeCheck.assert([12.3], Cond.array([ Cond.positive, Cond.integer ])));
       assert.isOk(RuntimeTypeCheck.assert([123], Cond.array([ Cond.positive, Cond.integer ])));
     });
+    it('Generator function acts as condition', () => {
+      assert.isOk(RuntimeTypeCheck.assert([], Cond.array));
+    });
+  });
+  describe('object', () => {
+    it('With no arguments', () => {
+      assert.isOk(RuntimeTypeCheck.assert({}, Cond.object()));
+      assert.isOk(RuntimeTypeCheck.assert({a:3}, Cond.object()));
+      assert.isNotOk(RuntimeTypeCheck.assert([], Cond.object()));
+    });
+    it('With inner type', () => {
+      assert.isOk(RuntimeTypeCheck.assert({a:3}, Cond.object('string', Cond.number)));
+      assert.isOk(RuntimeTypeCheck.assert({a:-3}, Cond.object('string', [ Cond.integer ])));
+      assert.isNotOk(RuntimeTypeCheck.assert({a:-3}, Cond.object('string', [ Cond.integer, Cond.positive ])));
+    });
+    it('Generator function acts as condition', () => {
+      assert.isOk(RuntimeTypeCheck.assert({}, Cond.object));
+    });
   });
 });
 

@@ -189,6 +189,9 @@ export class Cond {
   /**
    * Generate a condition that asserts a value to be an array,
    * optionally with the given descriptor inside it.
+   *
+   * This function itself is a condition without inner types,
+   * so using it as `Cond.array` is an alias to `Cond.array()`
    */
   static array(...descriptor: Descriptor): Condition {
     return ({
@@ -209,11 +212,15 @@ export class Cond {
         } else return type;
       }
     } satisfies Condition) as Condition;
-  };
+  }
 
   /**
    * Generate a condition that asserts a value to be an object literal,
    * optionally with the given descriptor inside it.
+   *
+   * This function itself is a condition without inner types,
+   * so using it as `Cond.object` is an alias to `Cond.object()`
+   *
    * @param keyName A concise key description used when displaying the type: `Object<keyName, ...>`.
    */
   static object(keyName?: string, ...descriptor: Descriptor) {
@@ -240,7 +247,7 @@ needs to be a key name, which is used for displaying the type: "Object<keyName, 
         } else return type;
       }
     } satisfies Condition) as Condition;
-  };
+  }
 
   // ---- Misc conditions ----
   /**
@@ -292,7 +299,7 @@ needs to be a key name, which is used for displaying the type: "Object<keyName, 
       },
       is: 'a different string'
     }
-  };
+  }
   /**
    * Generate a condition that asserts a value to be of the given length.
    * Implies {@link string} OR {@link array}.
@@ -304,7 +311,7 @@ needs to be a key name, which is used for displaying the type: "Object<keyName, 
       shouldBe: { after: `of length ${len}` },
       is: ({type, article}) => `${article} ${type} of a different length`
     } satisfies Condition) as Condition;
-  };
+  }
   /**
    * Generate a condition that asserts a value to be inside the given interval (inclusive).
    * Implies {@link number}.
@@ -321,6 +328,10 @@ needs to be a key name, which is used for displaying the type: "Object<keyName, 
     } satisfies Condition) as Condition;
   }
 }
+
+// Making the generator functions themselves base conditions
+Object.assign(Cond.array, Cond.array());
+Object.assign(Cond.object, Cond.object());
 
 
 export class TypeCheckError extends Error {

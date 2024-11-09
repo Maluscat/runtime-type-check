@@ -148,11 +148,18 @@ export declare class Cond {
     /**
      * Generate a condition that asserts a value to be an array,
      * optionally with the given descriptor inside it.
+     *
+     * This function itself is a condition without inner types,
+     * so using it as `Cond.array` is an alias to `Cond.array()`
      */
     static array(...descriptor: Descriptor): Condition;
     /**
      * Generate a condition that asserts a value to be an object literal,
      * optionally with the given descriptor inside it.
+     *
+     * This function itself is a condition without inner types,
+     * so using it as `Cond.object` is an alias to `Cond.object()`
+     *
      * @param keyName A concise key description used when displaying the type: `Object<keyName, ...>`.
      */
     static object(keyName?: string, ...descriptor: Descriptor): Condition;

@@ -45,6 +45,9 @@ export class Cond {
     /**
      * Generate a condition that asserts a value to be an array,
      * optionally with the given descriptor inside it.
+     *
+     * This function itself is a condition without inner types,
+     * so using it as `Cond.array` is an alias to `Cond.array()`
      */
     static array(...descriptor) {
         return {
@@ -69,10 +72,13 @@ export class Cond {
             }
         };
     }
-    ;
     /**
      * Generate a condition that asserts a value to be an object literal,
      * optionally with the given descriptor inside it.
+     *
+     * This function itself is a condition without inner types,
+     * so using it as `Cond.object` is an alias to `Cond.object()`
+     *
      * @param keyName A concise key description used when displaying the type: `Object<keyName, ...>`.
      */
     static object(keyName, ...descriptor) {
@@ -103,7 +109,6 @@ needs to be a key name, which is used for displaying the type: "Object<keyName, 
             }
         };
     }
-    ;
     // ---- Misc conditions ----
     /**
      * Assert a value to be not negative (0 or more).
@@ -152,7 +157,6 @@ needs to be a key name, which is used for displaying the type: "Object<keyName, 
             is: 'a different string'
         };
     }
-    ;
     /**
      * Generate a condition that asserts a value to be of the given length.
      * Implies {@link string} OR {@link array}.
@@ -165,7 +169,6 @@ needs to be a key name, which is used for displaying the type: "Object<keyName, 
             is: ({ type, article }) => `${article} ${type} of a different length`
         };
     }
-    ;
     /**
      * Generate a condition that asserts a value to be inside the given interval (inclusive).
      * Implies {@link number}.
@@ -182,6 +185,9 @@ needs to be a key name, which is used for displaying the type: "Object<keyName, 
         };
     }
 }
+// Making the generator functions themselves base conditions
+Object.assign(Cond.array, Cond.array());
+Object.assign(Cond.object, Cond.object());
 export class TypeCheckError extends Error {
     expected;
     is;

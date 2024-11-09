@@ -76,11 +76,11 @@ export class Cond {
      * @param keyName A concise key description used when displaying the type: `Object<keyName, ...>`.
      */
     static object(keyName, ...descriptor) {
-        if (typeof keyName !== 'string')
+        if (keyName && typeof keyName !== 'string')
             throw new Error(`\
 Condition 'object': When passing a descriptor, the first parameter \
-needs to be a key name, which is used for displaying "Object<keyName, ...>" in the type message.
-(If generic, just use 'string')`);
+needs to be a key name, which is used for displaying the type: "Object<keyName, ...>".
+(If generic, just use "string")`);
         return {
             conditions: [this.#conditionTypeof('object')],
             assert: descriptor.length > 0

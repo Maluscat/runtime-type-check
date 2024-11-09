@@ -155,7 +155,7 @@ export declare class Cond {
      * optionally with the given descriptor inside it.
      * @param keyName A concise key description used when displaying the type: `Object<keyName, ...>`.
      */
-    static object(keyName: string, ...descriptor: Descriptor): Condition;
+    static object(keyName?: string, ...descriptor: Descriptor): Condition;
     /**
      * Assert a value to be not negative (0 or more).
      * Implies {@link number}.

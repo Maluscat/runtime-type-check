@@ -47,41 +47,39 @@ export class Cond {
      * optionally with the given descriptor inside it.
      *
      * This function itself is a condition without inner types,
-     * so using it as `Cond.array` is an alias to `Cond.array()`
+     * so it can be used as `Cond.array` as an alias to `Cond.array()`.
      */
-    static array(...descriptor) {
-        return {
-            conditions: [this.#conditionTypeof('array')],
-            assert: descriptor.length > 0
-                ? (val) => val.every(inner => RuntimeTypeCheck.assert(inner, ...descriptor))
-                : (val) => true,
-            shouldBe: descriptor.length > 0
-                ? { type: `Array<${RuntimeTypeCheck.getMessageExpected(...descriptor)}>` }
-                : { type: 'array' },
-            is: ({ val, type }) => {
-                if (type === 'array' && descriptor.length > 0) {
-                    if (val.length === 0) {
-                        return 'an empty array';
-                    }
-                    else {
-                        return `Array<${RuntimeTypeCheck.getMessageIsIterated(val, ...descriptor)}>`;
-                    }
+    static array = ((...descriptor) => ({
+        conditions: [this.#conditionTypeof('array')],
+        assert: descriptor.length > 0
+            ? (val) => val.every(inner => RuntimeTypeCheck.assert(inner, ...descriptor))
+            : (val) => true,
+        shouldBe: descriptor.length > 0
+            ? { type: `Array<${RuntimeTypeCheck.getMessageExpected(...descriptor)}>` }
+            : { type: 'array' },
+        is: ({ val, type }) => {
+            if (type === 'array' && descriptor.length > 0) {
+                if (val.length === 0) {
+                    return 'an empty array';
                 }
-                else
-                    return type;
+                else {
+                    return `Array<${RuntimeTypeCheck.getMessageIsIterated(val, ...descriptor)}>`;
+                }
             }
-        };
-    }
+            else
+                return type;
+        }
+    }));
     /**
      * Generate a condition that asserts a value to be an object literal,
      * optionally with the given descriptor inside it.
      *
      * This function itself is a condition without inner types,
-     * so using it as `Cond.object` is an alias to `Cond.object()`
+     * so it can be used as `Cond.object` as an alias to `Cond.object()`.
      *
      * @param keyName A concise key description used when displaying the type: `Object<keyName, ...>`.
      */
-    static object(keyName, ...descriptor) {
+    static object = ((keyName, ...descriptor) => {
         if (keyName && typeof keyName !== 'string')
             throw new Error(`\
 Condition 'object': When passing a descriptor, the first parameter \
@@ -108,7 +106,7 @@ needs to be a key name, which is used for displaying the type: "Object<keyName, 
                     return type;
             }
         };
-    }
+    });
     // ---- Misc conditions ----
     /**
      * Assert a value to be positive.

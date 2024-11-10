@@ -164,11 +164,6 @@ export declare class Cond {
      */
     static object(keyName?: string, ...descriptor: Descriptor): Condition;
     /**
-     * Assert a value to be not negative (0 or more).
-     * Implies {@link number}.
-     */
-    static nonnegative: Condition;
-    /**
      * Assert a value to be positive.
      * Implies {@link number}.
      */
@@ -188,14 +183,6 @@ export declare class Cond {
      * Implies {@link string} OR {@link array}.
      */
     static length(len: number): Condition;
-    /**
-     * Generate a condition that asserts a value to be inside the given interval (inclusive).
-     * Implies {@link number}.
-     *
-     * @param min Lower interval boundary (inclusive)
-     * @param max Upper interval boundary (inclusive)
-     */
-    static range(min: number, max: number): Condition;
 }
 export declare class TypeCheckError extends Error {
     expected: string;

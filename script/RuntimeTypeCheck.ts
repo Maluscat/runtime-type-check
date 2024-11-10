@@ -251,17 +251,6 @@ needs to be a key name, which is used for displaying the type: "Object<keyName, 
 
   // ---- Misc conditions ----
   /**
-   * Assert a value to be not negative (0 or more).
-   * Implies {@link number}.
-   */
-  static nonnegative = ({
-    conditions: [this.number],
-    assert: val => val >= 0,
-    shouldBe: { before: 'non-negative' },
-    is: 'a negative number'
-  } satisfies Condition) as Condition;
-
-  /**
    * Assert a value to be positive.
    * Implies {@link number}.
    */
@@ -310,21 +299,6 @@ needs to be a key name, which is used for displaying the type: "Object<keyName, 
       assert: val => val.length === len,
       shouldBe: { after: `of length ${len}` },
       is: ({type, article}) => `${article} ${type} of a different length`
-    } satisfies Condition) as Condition;
-  }
-  /**
-   * Generate a condition that asserts a value to be inside the given interval (inclusive).
-   * Implies {@link number}.
-   *
-   * @param min Lower interval boundary (inclusive)
-   * @param max Upper interval boundary (inclusive)
-   */
-  static range(min: number, max: number): Condition {
-    return ({
-      conditions: [this.number],
-      assert: val => val >= min && val <= max,
-      shouldBe: { after: `of the interval [${min}, ${max}]` },
-      is: 'a number outside of the required range'
     } satisfies Condition) as Condition;
   }
 }

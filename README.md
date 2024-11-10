@@ -130,6 +130,8 @@ for a more detailed overview.
 `Cond` (alias: `RuntimeTypeCheck.Cond`) pre-defines commonly used conditions.
 See an overview in the [docs](#docs).
 
+There are also [additional conditions](#additional-conditions) included below
+that have not made it into the library.
 
 
 ## Examples
@@ -248,6 +250,44 @@ in-depth overview of the library.
 - [`Cond`](https://docs.malus.zone/runtime-type-check/#Cond)
 - [`RuntimeTypeCheck`](https://docs.malus.zone/runtime-type-check/#RuntimeTypeCheck)
 
+
+## Additional conditions
+Here are some useful conditions not provided by the base library that can just
+be copy pasted into your own code if you need them!
+This is because RuntimeTypeCheck is to be kept as light weight as possible.
+
+The `( ... satisfies Condition) as Condition` construct is used to cast the
+object into a condition while not forfeiting type checking.
+
+```ts
+/**
+ * Assert a value to be not negative (0 or more).
+ * Implies {@link number}.
+ */
+function nonnegative = ({
+  conditions: [this.number],
+  assert: val => val >= 0,
+  shouldBe: { before: 'non-negative' },
+  is: 'a negative number'
+} satisfies Condition) as Condition;
+```
+```ts
+/**
+ * Generate a condition that asserts a value to be inside
+ * the given interval (inclusive). Implies {@link number}.
+ *
+ * @param min Lower interval boundary (inclusive)
+ * @param max Upper interval boundary (inclusive)
+ */
+function range(min: number, max: number): Condition {
+  return ({
+    conditions: [this.number],
+    assert: val => val >= min && val <= max,
+    shouldBe: { after: `of the interval [${min}, ${max}]` },
+    is: 'a number outside of the required range'
+  } satisfies Condition) as Condition;
+}
+```
 
 
 ## Dev fact

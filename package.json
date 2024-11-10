@@ -1,6 +1,6 @@
 {
   "name": "@maluscat/runtime-type-check",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "author": "Maluscat <maluscat@proton.me> (https://malus.zone/)",
   "license": "ISC",
   "description": "Modular runtime type checker with focus on creating readable and smart error messages",

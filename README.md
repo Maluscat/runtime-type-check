@@ -91,10 +91,11 @@ for more in-depth descriptions.
 
 
 ## Usage
-The only non-typing-related exports are `RuntimeTypeCheck` (main library)
-and `Cond` (predefined conditions):
+The only non-typing-related exports are `RuntimeTypeCheck` (main library),
+`Cond` (predefined conditions) and, if needed, `TypeCheckError` (thrown by
+`assertAndThrow`):
 ```js
-import { RuntimeTypeCheck, Cond } from '@maluscat/runtime-type-check';
+import { RuntimeTypeCheck, Cond, TypeCheckError } from '@maluscat/runtime-type-check';
 ```
 See the [docs](#docs) for an overview of all additional typing related exports
 for use in TypeScript.
@@ -119,12 +120,33 @@ RuntimeTypeCheck.assert(3, [ Cond.positive, Cond.number ])
 
 This also applies to the `conditions` parameter of a `Condition`.
 
-### `assertAndThrow`
-`assertAndThrow` throws an error message that automatically catches the most
-relevant condition in the context of the given value. So, when asserting, say,
-either a string or a positive integer against the value `-3`, the method will
-explain that the given *number* may not be negative. See the [examples](#examples)
-for a more detailed overview.
+### `assert(value, ...descriptor)`
+Returns a boolean of whether the passed value matches the passed descriptor.
+
+### `assertAndThrow(value, ...descriptor)`
+If the given value does not assert, `assertAndThrow` throws an error message
+that automatically catches the most relevant condition in the context of the
+given value. So, when asserting, say, either a string or a positive integer
+against the value `-3`, the method will explain that the given *number* may
+not be negative. See the [examples](#examples) for a more detailed overview.
+
+If you need to modify or catch a potentially thrown error, it is good practice
+to test the caught error for an instance of `TypeCheckError`.
+You can then use its `message` field as-is or access the two parts of the
+message: `is` and `expected`:
+```ts
+try {
+  RuntimeTypeCheck.assertAndThrow(-3, Cond.string, Cond.false);
+} catch (err) {
+  if (err instanceof TypeCheckError) {
+    // message:  "Expected string OR false, got number"
+    // expected: "string OR false"
+    // is:       "number"
+    console.log(err.expected, err.is, err.message);
+  } else throw err;
+}
+```
+
 
 ### `Cond`
 `Cond` (alias: `RuntimeTypeCheck.Cond`) pre-defines commonly used conditions.
@@ -140,7 +162,7 @@ Let's assert a value to be either a positive integer or a string. For this,
 the conditions provided by the [`Cond`](https://docs.malus.zone/runtime-type-check/#Cond)
 class can be used.
 ```js
-import { RuntimeTypeCheck, Cond } from 'runtime-type-check';
+import { RuntimeTypeCheck, Cond } from '@maluscat/runtime-type-check';
 
 // true
 RuntimeTypeCheck.assert('foobar', Cond.string, [ Cond.positive, Cond.integer ]);

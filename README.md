@@ -204,14 +204,14 @@ Both conditions should extend `Cond.number` to be sure that any incoming
 values are already numbers.
 We will also take the liberty and make both of them a generic generator:
 ```ts
-const divisibleBy = (value) => ({
+const divisibleBy = (divisor: number) => ({
   conditions: [ Cond.number ], // Ensure that it's a number
-  assert: (val: number) => val % value === 0,
-  shouldBe: { after: `that is divisible by ${value}` },
-  is: `a number not divisible by ${value}`
+  assert: (val: number) => val % divisor === 0,
+  shouldBe: { after: `that is divisible by ${divisor}` },
+  is: `a number not divisible by ${divisor}`
 } satisfies Condition) as Condition;
 
-const greaterThan = (value) => ({
+const greaterThan = (value: number) => ({
   conditions: [ Cond.number ],
   assert: (val: number) => val > value,
   shouldBe: { after: `that is greater than ${value}` },
@@ -278,37 +278,56 @@ Here are some useful conditions not provided by the base library that can just
 be copy pasted into your own code if you need them!
 This is because RuntimeTypeCheck is to be kept as light weight as possible.
 
-The `( ... satisfies Condition) as Condition` construct is used to cast the
-object into a condition while not forfeiting type checking.
-
 ```ts
 /**
  * Assert a value to be not negative (0 or more).
- * Implies {@link number}.
+ * Implies {@link Cond.number}.
  */
-function nonnegative = ({
-  conditions: [this.number],
-  assert: val => val >= 0,
+const nonnegative = {
+  conditions: [ Cond.number ],
+  assert: (val: number) => val >= 0,
   shouldBe: { before: 'non-negative' },
   is: 'a negative number'
-} satisfies Condition) as Condition;
+};
 ```
 ```ts
 /**
  * Generate a condition that asserts a value to be inside
- * the given interval (inclusive). Implies {@link number}.
+ * the given interval (inclusive). Implies {@link Cond.number}.
  *
  * @param min Lower interval boundary (inclusive)
  * @param max Upper interval boundary (inclusive)
  */
-function range(min: number, max: number): Condition {
-  return ({
-    conditions: [this.number],
-    assert: val => val >= min && val <= max,
-    shouldBe: { after: `of the interval [${min}, ${max}]` },
-    is: 'a number outside of the required range'
-  } satisfies Condition) as Condition;
-}
+const range = (min: number, max: number) => ({
+  conditions: [ Cond.number ],
+  assert: (val: number) => val >= min && val <= max,
+  shouldBe: { after: `of the interval [${min}, ${max}]` },
+  is: 'a number outside of the required range'
+});
+```
+```ts
+/**
+ * Generate a condition that asserts a value to be divisible
+ * by the given divisor. Implies {@link Cond.number}.
+ */
+const divisibleBy = (divisor: number) => ({
+  conditions: [ Cond.number ], // Ensure that it's a number
+  assert: (val: number) => val % divisor === 0,
+  shouldBe: { after: `that is divisible by ${divisor}` },
+  is: `a number not divisible by ${divisor}`
+});
+```
+```ts
+/**
+ * Generate a condition that asserts a value to be greater
+ * than the given value. Implies {@link Cond.number}.
+ */
+const greaterThan = (value: number) => ({
+  conditions: [ Cond.number ],
+  assert: (val: number) => val > value,
+  shouldBe: { after: `that is greater than ${value}` },
+  is: `a number less than or equal to ${value}`
+});
 ```
 
 
